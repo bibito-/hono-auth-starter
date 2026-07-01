@@ -1,0 +1,48 @@
+# prod
+dist/
+
+# dev
+.yarn/
+!.yarn/releases
+.vscode/*
+!.vscode/launch.json
+!.vscode/*.code-snippets
+!.vscode/settings.json
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf
+
+# deps
+node_modules/
+.wrangler
+.vitest-cache
+
+# env
+.env
+.env.production
+.dev.vars
+
+# logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# design
+ds-bundle/
+
+# misc
+.DS_Store
+.mcp.json
+
+# Claude agent session state (not for version control)
+.claude/steering/
+.claude/worktrees/
+.agents/
+
+.dev.vars*
+!.dev.vars.example
+!.env.example

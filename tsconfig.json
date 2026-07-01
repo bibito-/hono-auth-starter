@@ -1,0 +1,25 @@
+{
+  "exclude": ["supabase/functions"],
+  "compilerOptions": {
+    "paths": {
+      "@client/*": ["./src/client/*"],
+      "@server/*": ["./src/server/*"],
+      "@shared/*": ["./src/shared/*"],
+    },
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ESNext", "es2024", "dom"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "types": [
+        "./worker-configuration.d.ts",
+        "node",
+        "vite/client"
+    ]
+  },
+}
