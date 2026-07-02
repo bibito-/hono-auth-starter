@@ -75,7 +75,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 # 使用できるスラッシュコマンド
 - `/spec <機能名>` … 仕様書を specs/ に作成し承認を得る（実装前に必ず実行）
 - `/tdd <対象>` … TDD（Red→Green→Refactor）で実装を進める
-- `/doc-push <変更内容>` … `.claude/` の rules / skills / CLAUDE.md を隔離エージェントに委譲し、main 向け PR を作成する
+- `/doc-push <変更内容>` … `.claude/` の rules / skills / CLAUDE.md を隔離エージェントに委譲し、main へ直接 push する
 
 # 初期セットアップ（このテンプレートを使い始める時）
 
