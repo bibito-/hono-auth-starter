@@ -3,6 +3,8 @@
 最終更新: 2026-06-24
 ステータス: 完了
 
+> 本ドキュメントは切り出し元プロジェクト（ai-todo）における実装履歴であり、本リポジトリには該当する PR・マイグレーションファイルは存在しない。設計判断の参考情報として保持している。
+
 ## 概要
 
 ユーザー削除を Supabase Edge Function（`rapid-processor`）から Hono バックエンドの `DELETE /api/admin/users/:id` へ移し、新設の `requireRole(["admin"])` ミドルウェアで守る。`auth.admin.deleteUser` は service_role 必須＝RLS をバイパスするため、これを Hono 側のサーバーサイド RBAC で防御する。認証ハードニング roadmap v2 Phase 3（サーバーサイド RBAC）の**最初の実消費者**。

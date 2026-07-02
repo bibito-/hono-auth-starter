@@ -3,6 +3,8 @@
 最終更新: 2026-06-26
 ステータス: **完了**（PR #26 マージ・本番デプロイ・スモーク合格）
 
+> 本ドキュメントは切り出し元プロジェクト（ai-todo）における実装履歴であり、本リポジトリには該当する PR・マイグレーションファイルは存在しない。設計判断の参考情報として保持している。
+
 ## 概要
 
 ユーザー一覧取得（`useUserManagement.fetchUsers`）を、クライアントの Supabase 直読み（`profiles.select("*")`）から Hono の `GET /api/users`（`requireRole(["admin","manager"])` でゲート）経由へ移行する。これで user 管理のデータ授受（更新・削除は移行済み）が Hono に揃う。認証ハードニング roadmap v2 Phase 3 の**最後の read 残作業**。

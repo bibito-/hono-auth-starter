@@ -57,6 +57,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 | `specs/` | 実装前の仕様書（SPEC駆動の起点）。実装完了後は docs/ に昇格させ削除 | 機能追加のたびに作成→削除 |
 | `steering/` | 進行中タスクの状態管理（ゴール・フェーズ・次のステップ）。`/tdd` が更新する | タスク開始・フェーズ完了・タスク完了時 |
 | `skills/` | Claude が実行するスラッシュコマンド・手順書（手続き的な作業スクリプト） | 随時更新 |
+| `agents/` | 実装専任 agent 定義（`client-impl-agent`・`server-impl-agent` 等） | 随時更新 |
 | `migrations/` | DBスキーマの設計ドキュメント（RLS・トリガー・設計判断）。truth source は `supabase/migrations/` | マイグレーション追加時 |
 
 ## docs/ の運用ルール
@@ -78,9 +79,14 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 
 # 初期セットアップ（このテンプレートを使い始める時）
 
-1. `package.json` の `name`・`wrangler.jsonc` の `name` をプロジェクト名に変更
-2. 新規 Supabase プロジェクトを作成し、`profiles`（+ RLS ポリシー）・`event_logs` テーブルを作成するマイグレーションを用意（[.claude/docs/migrations/user-management-design_1.md](.claude/docs/migrations/user-management-design_1.md) 参照）。その後 `.claude/skills/extract-template.md` Step6 記載の profiles/event_logs 用マイグレーション5本を適用
-3. `src/server/cors.ts` の `ALLOWED_ORIGINS`（現状 TODO プレースホルダー）を実際のオリジンに差し替え
-4. `.dev.vars` / Vercel 環境変数に `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_API_BASE_URL` を設定
-5. `src/server.ts`（Hono エントリポイント）・`src/client/main.tsx`・`src/client/App.tsx` 等のアプリケーションエントリポイントを新規実装（本テンプレートには未含有）
-6. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
+初期セットアップ手順は [README.md](README.md) と同じ内容・同じ順序にすること（乖離させない）。
+
+1. プロジェクト名を変更: `package.json` の `name`・`scripts.deploy` 内の `dist/hono_auth_starter/` パス（`name` をハイフン→アンダースコア変換した文字列）・`wrangler.jsonc` の `name`・`index.html` の `<title>`・`src/client/main.tsx` の `ThemeProvider` `storageKey`・`src/client/components/layout/Header.tsx` のブランドタイトル文字列・**README.md 自身の見出し/本文中の自己言及**
+2. 新規 Supabase プロジェクトを作成し、`profiles`（+ RLS ポリシー）・`event_logs` テーブルを作成するマイグレーションを用意（[.claude/docs/migrations/user-management-design_1.md](.claude/docs/migrations/user-management-design_1.md) 参照。role 種別は業務要件に合わせて再定義すること）。その後 `.claude/skills/extract-template.md` Step6 を参照し、profiles/event_logs 用の権限・RLS マイグレーションを適用
+3. Vercel でプロジェクトを新規作成し、対象 GitHub リポジトリと連携する（Framework Preset は Vite 自動検出のまま、Build/Output Directory も上書き不要）
+4. `.dev.vars` / Vercel 環境変数に `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_API_BASE_URL` を設定。加えて本番 Cloudflare Worker には `wrangler secret put` でユーザー自身がシークレットを登録する（未登録だと認証必須の全エンドポイントが 401 になる）
+5. `src/server/cors.ts` の `ALLOWED_ORIGINS`（現状 TODO プレースホルダー）に、Step 3 で確定した本番 URL を追記
+6. コンテンツ機能を実装: `src/client/contexts/ContentRepositoryContext.tsx` の型・`src/client/components/pages/ContentPage.tsx` を実際のコンテンツに差し替え、必要な API を `src/server.ts` に追加
+7. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
+
+**既知の deploy warning（対応不要）:** `pnpm run deploy` 実行時に `--minify と --no-bundle` 併用不可・`run_worker_first=true set without an assets binding` の2件の warning が出るが、`@cloudflare/vite-plugin` の仕様上の既知事項で対応不要。`wrangler.jsonc`/`vite.config.ts`/`deploy` スクリプトを変更して消そうとすると、Worker が意図せず SPA を配信してしまう regression を招くので触らないこと。
