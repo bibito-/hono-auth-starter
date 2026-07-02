@@ -47,6 +47,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 | `.claude/docs/rules/ux-feedback-policy.md` | トースト・エラー表示実装時 |
 | `.claude/docs/rules/testing-comment-rules.md` | テスト実装時 |
 | `.claude/docs/rules/local-dev-rules.md` | ローカルで動作確認するとき |
+| `.claude/docs/rules/error-logging-rules.md` | サーバーハンドラー・ミドルウェアの catch ブロック実装時 |
 
 # .claude/ ディレクトリ構成
 
