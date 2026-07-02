@@ -8,6 +8,7 @@
     "deploy": "vite build && wrangler deploy --config dist/hono_auth_starter/wrangler.json --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "types:supabase": "supabase gen types typescript --linked > src/shared/types/database.types.ts",
+    "typecheck": "tsc --noEmit",
     "test": "vitest"
   },
   "dependencies": {
