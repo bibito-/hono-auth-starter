@@ -17,6 +17,10 @@ node_modules/
 .wrangler
 .vitest-cache
 
+# supabase local cache (may contain connection info)
+supabase/.branches
+supabase/.temp
+
 # env
 .env
 .env.production

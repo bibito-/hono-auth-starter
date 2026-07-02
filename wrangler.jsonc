@@ -1,4 +1,12 @@
 {
+  // 本番デプロイは必ず `pnpm run deploy` を使うこと。このファイルに対して直接
+  // `wrangler deploy` を実行しないこと（assets.directory 未設定で失敗する。
+  // `pnpm run deploy` は vite build が @cloudflare/vite-plugin 経由で
+  // dist/<name>/wrangler.json を生成し、それを --config に指定して deploy する）。
+  //
+  // 既知の deploy warning（対応不要）: 「--minify と --no-bundle は併用不可」「run_worker_first=true
+  // set without an assets binding」の2件が出るが、@cloudflare/vite-plugin の仕様上の既知事項。
+  // 消そうとして assets 設定等を変更すると、Worker が意図せず SPA を配信してしまう regression を招く。
   "name": "hono-auth-starter",
   "main": "src/server.ts",
   "compatibility_date": "2026-06-14",
