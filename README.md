@@ -94,6 +94,8 @@ pnpm dev:spa   # Vercel向けSPAビルド確認を5174番で起動
 pnpm test      # vitest
 ```
 
+**devcontainer:** 本テンプレートは devcontainer 設定を含まない。ai-todo 由来の開発環境は兄弟プロジェクトを束ねる親ディレクトリの共有 devcontainer（SSH鍵の bind mount に `${localEnv:USERPROFILE}` を使用）に依拠しており、これは Windows/WSL 前提で macOS では動作しない。macOS で単体プロジェクトとして開発する場合は、`${localEnv:HOME}` ベースの `.devcontainer/` を別途用意すること。
+
 ## 参照
 
 - [CLAUDE.md](CLAUDE.md) — Claude Code 向けのプロジェクトルール
