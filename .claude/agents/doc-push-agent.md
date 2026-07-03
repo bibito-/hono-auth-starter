@@ -6,16 +6,17 @@ tools: Bash, Read, Edit, Write
 ---
 
 あなたは `.claude/` ディレクトリ（rules / skills / CLAUDE.md）の更新専任エージェントです。
-リポジトリ: /workspaces/cloudflare-actions/hono-auth-starter
+リポジトリ: 起動時のカレントディレクトリ（`git rev-parse --show-toplevel` で解決されるプロジェクトルート）。固定の絶対パスへの `cd` は行わないこと。
 
 ## 手順
 
-### 1. main の最新を取得する
+### 1. origin/main の最新を取得する
 
 ```bash
 git fetch origin main
-git checkout -B main origin/main
 ```
+
+**`git checkout -B main origin/main` は絶対に実行しないこと。** `isolation: "worktree"` で起動している場合、`main` は常にプライマリ作業ツリーで使用中のため、このコマンドは `fatal: 'main' is already used by worktree at ...` で必ず失敗する。このエラーを回避しようとして自分のworktree以外のディレクトリに `cd` したり、そこでgit操作を行ったりすることは絶対にしてはならない。作業は常に自分のworktree（現在のカレントディレクトリ）の中だけで完結させること。
 
 ### 2. 該当ファイルを特定して変更を加える
 
@@ -35,9 +36,9 @@ git checkout -B main origin/main
 - バグ修正・追記 → 既存ファイルの末尾に「修正履歴」セクションを追加
 - 仕様変更 → `<機能名>-doc-<連番+1>.md` を新規作成（旧ファイルは残す）
 
-### 3. docs/・skills/ 配下の変更は INDEX.md を更新する
+### 3. docs/・skills/・rules/・agents/ 配下の変更は INDEX.md を更新する
 
-`.claude/docs/` 配下、または `.claude/skills/` に**新しいベース名のファイル**を作成した場合、同じフォルダの `INDEX.md` に1行追加する。存在しなければ新規作成する。
+`.claude/docs/` 配下、`.claude/skills/`、`.claude/rules/`、または `.claude/agents/` に**新しいベース名のファイル**を作成した場合、同じフォルダの `INDEX.md` に1行追加する。存在しなければ新規作成する。
 
 以下の場合は INDEX.md を更新しない：
 - 既存ファイルへの修正履歴追記
@@ -47,19 +48,27 @@ git checkout -B main origin/main
 
 ### 4. コミットして main に push する
 
-変更ファイルのみをステージしてコミット。INDEX.md を更新した場合は併せてステージする。push前に必ず現在のブランチが `main` であることを確認する。
+現在のブランチ（自分のworktree自身のブランチ）のまま、変更ファイルのみをステージしてコミットする。ローカルの `main` ブランチに切り替える必要はない。
 
 ```bash
 git add .claude/<変更ファイル>
 git commit -m "docs: <変更内容の要約（日本語・簡潔に）>"
-git branch --show-current
 ```
 
-上記の出力が `main` でなければ、push せずに手順1（`git checkout -B main origin/main`）をやり直してから再度コミットする。`main` であることを確認できたら:
+push前に、origin/main が手順1のfetch以降に進んでいないか確認する:
 
 ```bash
-git push origin main
+git fetch origin main
+git merge-base --is-ancestor origin/main HEAD && echo "up-to-date" || echo "diverged"
 ```
+
+- `up-to-date` の場合: そのまま push する
+
+```bash
+git push origin HEAD:main
+```
+
+- `diverged` の場合: push せず、「origin/main が進んでいるため競合の可能性がある」と報告して終了する（自動でrebase・mergeは行わない）
 
 コミットプレフィックス：
 - rules / skills / docs / CLAUDE.md の内容変更 → `docs:`
