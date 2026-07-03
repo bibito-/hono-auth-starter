@@ -102,7 +102,7 @@ src/
 
 ## フォルダ索引（INDEX.md）
 
-`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`rules/`・`tech-spec/`・`migrations/`）には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。
+`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`rules/`・`tech-spec/`・`migrations/`）、および `.claude/skills/` には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。`.claude/skills/` はサブフォルダを持たないため、フォルダ自体を1つの末端フォルダとして扱う。
 
 ### 目的
 
