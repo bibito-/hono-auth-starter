@@ -37,17 +37,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 
 # 実装時の参照ドキュメント
 
-| ドキュメント | 参照タイミング |
-|---|---|
-| `.claude/docs/rules/react-rules.md` | React コンポーネント・hooks 実装時 |
-| `.claude/docs/rules/supabase-auth-rules.md` | Supabase 認証処理の実装・変更時 |
-| `.claude/docs/rules/supabase-db-rules.md` | DBマイグレーション・型定義更新時（`database.types.ts` は自動生成のため直接編集禁止） |
-| `.claude/docs/rules/tanstack-query-rules.md` | TanStack Query 実装時 |
-| `.claude/docs/rules/ui-rules.md` | UI コンポーネント実装時 |
-| `.claude/docs/rules/ux-feedback-policy.md` | トースト・エラー表示実装時 |
-| `.claude/docs/rules/testing-comment-rules.md` | テスト実装時 |
-| `.claude/docs/rules/local-dev-rules.md` | ローカルで動作確認するとき |
-| `.claude/docs/rules/error-logging-rules.md` | サーバーハンドラー・ミドルウェアの catch ブロック実装時 |
+実装・変更・デバッグ・動作確認など何らかの作業に着手する前に、`.claude/docs/rules/INDEX.md` を読み、これから触るドメイン（React・Supabase認証・Supabase DB・TanStack Query・UI・UXフィードバック・テスト・ローカル動作確認・エラーログ等）に対応するルールファイルがあれば参照すること。
 
 # .claude/ ディレクトリ構成
 
