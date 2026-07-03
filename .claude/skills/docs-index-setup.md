@@ -18,7 +18,7 @@
 ```markdown
 ## フォルダ索引（INDEX.md）
 
-`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`tech-spec/`・`migrations/`）には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。`rules/` は CLAUDE.md の参照表で代替されているため対象外。
+`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`rules/`・`tech-spec/`・`migrations/`）には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。
 
 ### 目的
 
@@ -40,7 +40,7 @@
 ### Step 2: 対象フォルダを洗い出す
 
 ```bash
-find .claude/docs -mindepth 1 -type d ! -path "*/rules*"
+find .claude/docs -mindepth 1 -type d
 ```
 
 のうち、直下に `.md` ファイルを持つフォルダ（末端フォルダ）を対象にする。
@@ -50,6 +50,7 @@ find .claude/docs -mindepth 1 -type d ! -path "*/rules*"
 - ファイル名から連番サフィックス（`-\d+` または `_\d+`）を除いたものをベース名とする
 - 例: `user-management-doc-01.md` と `user-management-doc-02.md` → ベース名 `user-management-doc`
 - 各ファイルの冒頭（タイトル・`## 概要` セクション）を読み、ベース名ごとに1行の役割要約を書く（連番が複数あっても要約は1行のみ。最新版の判定は「最も連番が高いファイルを参照する」という既定に委ねる）
+- 連番サフィックスを持たないファイル（例: `docs/rules/` 配下の各ルールファイル）は、ファイル名をそのままベース名とする
 
 ### Step 4: INDEX.md を書く
 
