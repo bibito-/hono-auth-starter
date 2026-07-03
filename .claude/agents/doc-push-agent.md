@@ -48,11 +48,17 @@ git checkout -B main origin/main
 
 ### 4. コミットして main に push する
 
-変更ファイルのみをステージしてコミット。INDEX.md を更新した場合は併せてステージする。
+変更ファイルのみをステージしてコミット。INDEX.md を更新した場合は併せてステージする。push前に必ず現在のブランチが `main` であることを確認する。
 
 ```bash
 git add .claude/<変更ファイル>
 git commit -m "docs: <変更内容の要約（日本語・簡潔に）>"
+git branch --show-current
+```
+
+上記の出力が `main` でなければ、push せずに手順1（`git checkout -B main origin/main`）をやり直してから再度コミットする。`main` であることを確認できたら:
+
+```bash
 git push origin main
 ```
 
