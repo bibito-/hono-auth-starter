@@ -3,7 +3,7 @@
 | ドキュメント | 役割 |
 |---|---|
 | doc-push | `.claude/`（rules/skills/CLAUDE.md）の変更をbackground agentに委譲し、mainへ直接pushする（`/doc-push`） |
-| docs-index-setup | `.claude/docs/`・`.claude/skills/`にフォルダ索引（INDEX.md）を一括作成・更新する |
+| index-setup | `.claude/docs/`・`.claude/skills/`にフォルダ索引（INDEX.md）を一括作成・更新する |
 | extract-template | 本プロジェクトから再利用可能な資産を抜き出し新規プロジェクトの土台にする手順 |
 | merge-gate | mainへマージ可能な変更のDefinition of Done（grillゲート・スモーク・公式照合） |
 | pnpm-setup | pnpm v11のビルドスクリプト許可設定（pnpm-workspace.yaml） |
