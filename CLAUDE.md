@@ -61,6 +61,10 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 | `agents/` | 実装専任 agent 定義（`client-impl-agent`・`server-impl-agent` 等） | 随時更新 |
 | `migrations/` | DBスキーマの設計ドキュメント（RLS・トリガー・設計判断）。truth source は `supabase/migrations/` | マイグレーション追加時 |
 
+## skills の配置方針
+
+本プロジェクトはテンプレートであり、どこにコピーされて使われるか（ディレクトリ構成・マシン）が実行時点では分からない。そのため `.claude/skills/` は `~/.claude/skills/`（グローバル）等の外部共有場所に依存させず、必要な手順は各プロジェクトの `.claude/skills/` 内に自己完結させる。複数プロジェクトで共通化したい手順は、将来的に専用のGitHubリポジトリを正典として切り出す予定（未着手）。それまでは各プロジェクトが同じ内容を重複して持つ運用とする。
+
 ## docs/ の運用ルール
 
 - **実装前の仕様書** は `.claude/specs/` に書いてから実装を開始すること（SPEC駆動）
