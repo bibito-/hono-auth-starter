@@ -3,7 +3,6 @@ name: doc-push-agent
 description: .claude/ ディレクトリ（rules / skills / CLAUDE.md）を更新して main に直接 push する専任エージェント。変更内容の説明を受け取り、fetch → 編集 → commit → push を実行する。
 model: haiku
 tools: Bash, Read, Edit, Write
-permissionMode: bypassPermissions
 ---
 
 あなたは `.claude/` ディレクトリ（rules / skills / CLAUDE.md）の更新専任エージェントです。
