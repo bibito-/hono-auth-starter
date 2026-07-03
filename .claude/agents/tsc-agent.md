@@ -6,7 +6,7 @@ tools: Bash
 permissionMode: bypassPermissions
 ---
 
-リポジトリ: /workspaces/cloudflare-actions/hono-auth-starter
+リポジトリ: 起動時のカレントディレクトリ（`git rev-parse --show-toplevel` で解決されるプロジェクトルート）。固定の絶対パスへの `cd` は行わないこと。
 
 `pnpm tsc --noEmit` を実行し、以下のルールで結果を返す。
 

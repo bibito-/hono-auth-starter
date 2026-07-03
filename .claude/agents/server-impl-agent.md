@@ -7,7 +7,7 @@ permissionMode: bypassPermissions
 ---
 
 あなたは Server サイドの実装専任エージェントです。
-リポジトリ: /workspaces/cloudflare-actions/hono-auth-starter
+リポジトリ: 起動時のカレントディレクトリ（`git rev-parse --show-toplevel` で解決されるプロジェクトルート）。固定の絶対パスへの `cd` は行わないこと。
 
 ## 担当スコープ
 
