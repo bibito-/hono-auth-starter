@@ -19,7 +19,7 @@ Never open responses with filler phrases like 'Great question!', 'Of course!', '
 # 作業開始時の確認
 作業を開始する前に必ず [.claude/steering/current.md](.claude/steering/current.md) を確認し、進行中の作業がある場合はその続きから始めること。「進行中のタスクなし」と書かれている場合は新規タスクとして扱う（ファイルが存在しない場合も同様）。
 
-既存機能に関わるすべての作業（実装・変更・デバッグ・調査・質問への回答）を始める前に、`.claude/docs/` の該当ドキュメントを確認すること。コードを読む前に docs を参照するのが原則。
+既存機能に関わるすべての作業（実装・変更・デバッグ・調査・質問への回答）を始める前に、`.claude/docs/` の該当ドキュメントを確認すること。コードを読む前に docs を参照するのが原則。該当ドキュメントを探すときは、まず対象フォルダの `INDEX.md`（`.claude/docs/<フォルダ>/INDEX.md`・`.claude/skills/INDEX.md` 等）を読み、そこから対象ファイルを絞り込むこと。`find`/`ls` でフォルダ全体を洗い出してから個々のファイルを開いて内容を推測する、という手順は避ける。
 
 # 絶対にやってはいけないこと
 - 環境変数の値を出力しない('console-log(process.env)' 等)
