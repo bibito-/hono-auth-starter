@@ -1,4 +1,4 @@
-# docs-index-setup スキル
+# index-setup スキル
 
 `.claude/docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ）、および `.claude/skills/` に、ファイル一覧と役割をまとめた `INDEX.md` を一括作成・更新する。
 
