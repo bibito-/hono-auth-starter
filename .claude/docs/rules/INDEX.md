@@ -8,6 +8,7 @@
 | supabase-auth-rules | Supabase認証処理実装時のルール（onAuthStateChange内でのDBクエリ禁止等） |
 | supabase-db-rules | DBマイグレーション・型定義更新時のルール（database.types.ts手動編集禁止、変更手順） |
 | tanstack-query-rules | TanStack Query実装時のルール（QueryKey設計原則） |
+| terminology-rules | 用語定義（「クライアント」＝フロントエンドソフトウェア、人間のユーザーとは区別、CSRF文脈の含意など） |
 | testing-comment-rules | テスト実装時のコメントルール（it()ブロック内のフェーズコメント） |
 | ui-rules | UIコンポーネント実装時のルール（shadcn/ui使用方針） |
 | ux-feedback-policy | トースト・エラー表示実装時の方針（画面遷移で伝わる場合はToast不要等） |
