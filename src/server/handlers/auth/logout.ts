@@ -29,7 +29,7 @@ export async function logoutHandler(c: HandlerContext) {
         console.error("[logout] signOut に失敗", error.message);
       }
     } catch (e) {
-      console.error("[logout] signOut に失敗", e);
+      console.error("[logout] signOut に失敗", e instanceof Error ? e.message : String(e));
     }
   }
 
