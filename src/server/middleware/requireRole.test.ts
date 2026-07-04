@@ -46,7 +46,7 @@ function createApp() {
   return app;
 }
 
-const authHeader = { Authorization: "Bearer caller-jwt" };
+const authHeader = { Cookie: "access_token=caller-jwt" };
 
 describe("requireRole", () => {
   beforeEach(() => {

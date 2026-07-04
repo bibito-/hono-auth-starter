@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import { createClient } from "@supabase/supabase-js";
 import type { UserRole } from "@shared/entities/UserRole";
 import type { HonoVariables } from "@shared/types/hono";
+import { getAccessToken } from "../lib/authCookies";
 
 /**
  * サーバーサイド RBAC ミドルウェア（Phase 3）。
@@ -20,7 +21,7 @@ export function requireRole(allowed: UserRole[]) {
     Variables: HonoVariables;
   }>(async (c, next) => {
     const userId = c.get("user").id;
-    const token = c.req.header("Authorization")!.slice("Bearer ".length);
+    const token = getAccessToken(c)!;
 
     const supabase = createClient(
       c.env.SUPABASE_URL,

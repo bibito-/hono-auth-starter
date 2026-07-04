@@ -1,11 +1,16 @@
 import { Hono } from "hono";
-import { authMiddleware } from "./server/middleware/auth";
 import { requireRole } from "./server/middleware/requireRole";
 import { corsMiddleware } from "./server/cors";
 import { bodySizeLimitMiddleware } from "./server/middleware/bodySize";
+import { authGuard, csrfGuard } from "./server/middleware/routeGuards";
 import { deleteUserHandler } from "./server/handlers/deleteUser";
 import { listUsersHandler } from "./server/handlers/listUsers";
 import { updateUserHandler } from "./server/handlers/updateUser";
+import { loginHandler } from "./server/handlers/auth/login";
+import { signupHandler } from "./server/handlers/auth/signup";
+import { refreshHandler } from "./server/handlers/auth/refresh";
+import { logoutHandler } from "./server/handlers/auth/logout";
+import { meHandler } from "./server/handlers/auth/me";
 import type { HonoVariables } from "@shared/types/hono";
 import { RateLimiter } from "./server/rate-limit/RateLimiter";
 
@@ -19,9 +24,24 @@ const app = new Hono<{
 // bodySize は cors・auth より前に置く。巨大ペイロードを後続処理に渡さないようにする。
 app.use("/api/*", bodySizeLimitMiddleware);
 // cors は auth より前に置く。OPTIONS プリフライトを cors が 204 で短絡させ、
-// Authorization ヘッダーのないプリフライトが authMiddleware で 401 になるのを防ぐ。
+// Cookie 未送信のプリフライトが authGuard で 401 になるのを防ぐ。
 app.use("/api/*", corsMiddleware);
-app.use("/api/*", authMiddleware);
+// authGuard: /api/auth/login・signup・refresh を除き authMiddleware（Cookie の
+// access_token 検証）を適用する。ログイン前は有効な access_token が存在し得ないため、
+// これらのパスを認証必須にすると誰もログインできなくなる。
+app.use("/api/*", authGuard);
+// csrfGuard: 状態変更メソッド（POST/PATCH/DELETE）にのみ csrfMiddleware を適用する。
+// login・signup は csrf_secret がまだ発行されていないため対象外。
+app.use("/api/*", csrfGuard);
+
+// 認証プロキシ（Supabase 直叩きから Hono 経由に切り替え）。
+// httpOnly Cookie の発行（Set-Cookie）はサーバーでしかできないため、
+// login/signup/refresh 成功時にここで Cookie を発行する。
+app.post("/api/auth/login", loginHandler);
+app.post("/api/auth/signup", signupHandler);
+app.post("/api/auth/refresh", refreshHandler);
+app.post("/api/auth/logout", logoutHandler);
+app.get("/api/auth/me", meHandler);
 
 // ユーザー管理ルートは authMiddleware の後段でサーバーサイド RBAC を課す。
 // 一括 use ではなく per-route で requireRole を付け、操作ごとに必要ロールを宣言する。

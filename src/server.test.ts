@@ -3,12 +3,12 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type { HonoVariables } from "@shared/types/hono";
 import { corsMiddleware, ALLOWED_ORIGINS } from "./server/cors";
-import { authMiddleware } from "./server/middleware/auth";
+import { authGuard, csrfGuard } from "./server/middleware/routeGuards";
 import { bodySizeLimitMiddleware } from "./server/middleware/bodySize";
 
 // 実 server.ts は RateLimiter 経由で `cloudflare:` を import するため node の
 // ESM ローダーで読めない。auth.test.ts と同様に、server.ts の `/api/*` 配線
-// （bodySize → cors → auth の順）を最小アプリで再現して検証する。
+// （bodySize → cors → authGuard → csrfGuard の順）を最小アプリで再現して検証する。
 const ALLOWED_ORIGIN = ALLOWED_ORIGINS[0];
 const DISALLOWED_ORIGIN = "https://evil.example.com";
 
@@ -17,10 +17,11 @@ function createApp() {
     Bindings: CloudflareBindings;
     Variables: HonoVariables;
   }>();
-  // server.ts と同じ順序: bodySize → cors → auth
+  // server.ts と同じ順序: bodySize → cors → authGuard → csrfGuard
   app.use("/api/*", bodySizeLimitMiddleware);
   app.use("/api/*", corsMiddleware);
-  app.use("/api/*", authMiddleware);
+  app.use("/api/*", authGuard);
+  app.use("/api/*", csrfGuard);
   app.get("/api/users", (c) => c.json({ ok: true }));
   return app;
 }
@@ -36,7 +37,7 @@ describe("ボディサイズ制限 (/api/*)", () => {
       headers: { "Content-Length": String(1024 * 64) },
     });
 
-    // Assert: bodySizeLimitMiddleware は通過し、auth が 401 を返す
+    // Assert: bodySizeLimitMiddleware は通過し、authGuard が 401 を返す
     expect(res.status).toBe(401);
   });
 
@@ -65,7 +66,7 @@ describe("ボディサイズ制限 (/api/*)", () => {
       method: "GET",
     });
 
-    // Assert: bodySizeLimitMiddleware は通過し、auth が 401 を返す
+    // Assert: bodySizeLimitMiddleware は通過し、authGuard が 401 を返す
     expect(res.status).toBe(401);
   });
 });
@@ -87,15 +88,17 @@ describe("CORS (/api/*)", () => {
     // Assert
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED_ORIGIN);
+    expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
     expect(res.headers.get("Access-Control-Allow-Methods") ?? "").toContain(
       "GET",
     );
     const headers = res.headers.get("Access-Control-Allow-Headers") ?? "";
     expect(headers).toContain("Authorization");
     expect(headers).toContain("Content-Type");
+    expect(headers).toContain("X-CSRF-Token");
   });
 
-  it("列挙した全ての許可オリジン（localhost・本番 Vercel）を反射する", async () => {
+  it("列挙した全ての許可オリジンを反射する", async () => {
     // 準備
     const app = createApp();
 
@@ -126,11 +129,11 @@ describe("CORS (/api/*)", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
-  it("プリフライト OPTIONS は authMiddleware で 401 にならない（cors が先に短絡）", async () => {
+  it("プリフライト OPTIONS は authGuard で 401 にならない（cors が先に短絡）", async () => {
     // 準備
     const app = createApp();
 
-    // Act: Authorization なしの許可オリジンプリフライト
+    // Act: Cookie なしの許可オリジンプリフライト
     const res = await app.request("/api/users", {
       method: "OPTIONS",
       headers: {
@@ -147,13 +150,13 @@ describe("CORS (/api/*)", () => {
     // 準備
     const app = createApp();
 
-    // Act: Authorization なしの許可オリジン実リクエスト（auth で 401 になる）
+    // Act: Cookie なしの許可オリジン実リクエスト（authGuard で 401 になる）
     const res = await app.request("/api/users", {
       method: "GET",
       headers: { Origin: ALLOWED_ORIGIN },
     });
 
-    // Assert: auth で 401 だが、cors が先に走り ACAO は付与されている
+    // Assert: authGuard で 401 だが、cors が先に走り ACAO は付与されている
     expect(res.status).toBe(401);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ALLOWED_ORIGIN);
   });

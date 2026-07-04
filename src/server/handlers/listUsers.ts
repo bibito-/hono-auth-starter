@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Context } from "hono";
 import type { HonoVariables } from "@shared/types/hono";
+import { getAccessToken } from "../lib/authCookies";
 
 type HandlerContext = Context<{
   Bindings: CloudflareBindings;
@@ -17,7 +18,7 @@ type HandlerContext = Context<{
  *   クライアントは既存 `mapToProfile` でマッピングを継続する。
  */
 export async function listUsersHandler(c: HandlerContext) {
-  const token = c.req.header("Authorization")!.slice("Bearer ".length);
+  const token = getAccessToken(c)!;
 
   const supabase = createClient(
     c.env.SUPABASE_URL,

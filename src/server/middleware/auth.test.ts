@@ -68,7 +68,7 @@ function createApp() {
 }
 
 describe("authMiddleware", () => {
-  it("正常系: 有効なトークンのとき user.id に sub を設定して通す", async () => {
+  it("正常系: access_token Cookie が有効なとき user.id に sub を設定して通す", async () => {
     // 準備
     const app = createApp();
     const token = await makeToken();
@@ -76,7 +76,7 @@ describe("authMiddleware", () => {
     // Act
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
 
@@ -85,7 +85,7 @@ describe("authMiddleware", () => {
     expect(await res.json()).toEqual({ id: "user-123" });
   });
 
-  it("異常系: Authorization ヘッダーがないとき 401", async () => {
+  it("異常系: access_token Cookie がないとき 401", async () => {
     // 準備
     const app = createApp();
 
@@ -96,15 +96,14 @@ describe("authMiddleware", () => {
     expect(res.status).toBe(401);
   });
 
-  it("異常系: Bearer スキームでないとき 401", async () => {
+  it("異常系: access_token Cookie が空文字のとき 401", async () => {
     // 準備
     const app = createApp();
-    const token = await makeToken();
 
     // Act
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Basic ${token}` } },
+      { headers: { Cookie: "access_token=" } },
       env,
     );
 
@@ -120,7 +119,7 @@ describe("authMiddleware", () => {
     // Act: 末尾を改ざんして署名を壊す
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}tampered` } },
+      { headers: { Cookie: `access_token=${token}tampered` } },
       env,
     );
 
@@ -136,7 +135,7 @@ describe("authMiddleware", () => {
     // Act
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
 
@@ -152,7 +151,7 @@ describe("authMiddleware", () => {
     // Act
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
 
@@ -169,7 +168,7 @@ describe("authMiddleware", () => {
     // Act
     const res = await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
 
@@ -185,12 +184,12 @@ describe("authMiddleware", () => {
     // Act: 同じインスタンスに2回リクエストする
     await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
     await app.request(
       "/api/me",
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Cookie: `access_token=${token}` } },
       env,
     );
 
@@ -215,7 +214,7 @@ describe("authMiddleware", () => {
       // 1回目リクエストでキャッシュを作る
       await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
       // TTL 内（TTL - 1ms）に進める
@@ -224,7 +223,7 @@ describe("authMiddleware", () => {
       // Act
       await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
 
@@ -241,7 +240,7 @@ describe("authMiddleware", () => {
       // 1回目リクエストでキャッシュを作る
       await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
       // TTL を超える（TTL + 1ms）
@@ -250,7 +249,7 @@ describe("authMiddleware", () => {
       // Act
       await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
 
@@ -267,7 +266,7 @@ describe("authMiddleware", () => {
       // 1回目リクエストでキャッシュを作る
       await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
       // TTL を超えて fetch を失敗させる
@@ -280,7 +279,7 @@ describe("authMiddleware", () => {
       // Act
       const res = await app.request(
         "/api/me",
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Cookie: `access_token=${token}` } },
         env,
       );
 

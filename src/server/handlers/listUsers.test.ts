@@ -50,7 +50,7 @@ function createApp(caller: AuthenticatedUser) {
 async function get(caller: AuthenticatedUser, token = "caller-jwt") {
   return createApp(caller).request(
     "/api/users",
-    { method: "GET", headers: { Authorization: `Bearer ${token}` } },
+    { method: "GET", headers: { Cookie: `access_token=${token}` } },
     env,
   );
 }
