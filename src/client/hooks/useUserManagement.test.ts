@@ -2,19 +2,6 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "@client/lib/apiFetch";
 
-// supabase クライアントは Realtime 購読のみに使う（一覧フェッチは Hono 経由へ移行）。
-vi.mock("@client/clients/supabaseClient", () => {
-  const channelObj = { on: vi.fn(), subscribe: vi.fn() };
-  channelObj.on.mockReturnValue(channelObj);
-  channelObj.subscribe.mockReturnValue(channelObj);
-  return {
-    supabase: {
-      channel: vi.fn(() => channelObj),
-      removeChannel: vi.fn(),
-    },
-  };
-});
-
 // apiFetch をモックする
 vi.mock("@client/lib/apiFetch", () => ({ apiFetch: vi.fn() }));
 
@@ -78,7 +65,23 @@ describe("useUserManagement.deleteUser", () => {
     });
   });
 
-  it("res.ok が false のとき throw する", async () => {
+  it("成功直後に GET /api/users を再度呼び一覧を再取得する", async () => {
+    // 準備: hook を初期化（mount の fetchUsers も apiFetch 経由になるため json を備える）
+    mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] } as unknown as Response);
+    const { result } = renderHook(() => useUserManagement());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Act
+    await act(async () => {
+      await result.current.deleteUser("u-1");
+    });
+
+    // Assert: mount 時の1回 + DELETE の1回 + 再取得の1回 = GET /api/users が計2回
+    const getUsersCalls = mockApiFetch.mock.calls.filter(([input]) => input === "/api/users");
+    expect(getUsersCalls).toHaveLength(2);
+  });
+
+  it("res.ok が false のとき throw し、再取得は行わない", async () => {
     // 準備: hook を初期化
     mockApiFetch.mockResolvedValue({ ok: false } as Response);
     const { result } = renderHook(() => useUserManagement());
@@ -86,6 +89,8 @@ describe("useUserManagement.deleteUser", () => {
 
     // Act / Assert
     await expect(result.current.deleteUser("u-1")).rejects.toThrow();
+    const getUsersCalls = mockApiFetch.mock.calls.filter(([input]) => input === "/api/users");
+    expect(getUsersCalls).toHaveLength(1);
   });
 });
 
@@ -116,7 +121,23 @@ describe("useUserManagement.updateUser", () => {
     });
   });
 
-  it("res.ok が false のとき throw する", async () => {
+  it("成功直後に GET /api/users を再度呼び一覧を再取得する", async () => {
+    // 準備: hook を初期化（mount の fetchUsers も apiFetch 経由になるため json を備える）
+    mockApiFetch.mockResolvedValue({ ok: true, json: async () => [] } as unknown as Response);
+    const { result } = renderHook(() => useUserManagement());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Act
+    await act(async () => {
+      await result.current.updateUser("u-1", { role: "manager" });
+    });
+
+    // Assert: mount 時の1回 + PATCH の1回 + 再取得の1回 = GET /api/users が計2回
+    const getUsersCalls = mockApiFetch.mock.calls.filter(([input]) => input === "/api/users");
+    expect(getUsersCalls).toHaveLength(2);
+  });
+
+  it("res.ok が false のとき throw し、再取得は行わない", async () => {
     // 準備: hook を初期化
     mockApiFetch.mockResolvedValue({ ok: false } as Response);
     const { result } = renderHook(() => useUserManagement());
@@ -126,5 +147,7 @@ describe("useUserManagement.updateUser", () => {
     await expect(
       result.current.updateUser("u-1", { role: "staff" }),
     ).rejects.toThrow();
+    const getUsersCalls = mockApiFetch.mock.calls.filter(([input]) => input === "/api/users");
+    expect(getUsersCalls).toHaveLength(1);
   });
 });

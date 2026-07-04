@@ -1,4 +1,3 @@
-import { supabase } from "@client/clients/supabaseClient";
 import { mapToProfile, type Profile } from "@client/entities/Profile";
 import type { UserRole } from "@client/entities/UserRole";
 import { apiFetch } from "@client/lib/apiFetch";
@@ -28,37 +27,29 @@ export function useUserManagement() {
     updates: { username?: string; role?: UserRole },
   ) => {
     // Hono の PATCH /api/users/:id（service_role + サーバーサイド RBAC）へ委譲。
-    // role 列は authenticated から REVOKE 済みのため直叩きは不可。UI 更新は
-    // Realtime（profiles UPDATE）に委ね、楽観的更新は足さない。
+    // role 列は authenticated から REVOKE 済みのため直叩きは不可。
+    // Cookie 化により profiles テーブルの Supabase Realtime 購読は使えなくなったため、
+    // 成功直後に明示的に fetchUsers() を呼んで一覧を再取得する（他管理者による同時編集は
+    // ライブ反映されず、次回操作・再訪問時に反映される縮退運用）。
     const res = await apiFetch(`/api/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error("ユーザー更新に失敗しました");
+    await fetchUsers();
   };
 
   const deleteUser = async (id: string) => {
     // Hono の DELETE /api/users/:id（service_role + サーバーサイド RBAC）へ委譲。
-    // UI 更新は Realtime（profiles DELETE）に委ね、楽観的更新は足さない。
+    // updateUser と同様、成功直後に fetchUsers() を呼んで一覧を再取得する。
     const res = await apiFetch(`/api/users/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("ユーザー削除に失敗しました");
+    await fetchUsers();
   };
 
   useEffect(() => {
-    const channel = supabase
-      .channel("profiles-modify")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        fetchUsers,
-      )
-      .subscribe();
     fetchUsers();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   return { users, loading, updateUser, deleteUser };
