@@ -18,17 +18,19 @@ export const ALLOWED_ORIGINS = [
 /**
  * `/api/*` 向け CORS ミドルウェア。
  *
- * 認証は `Authorization: Bearer` ヘッダー方式で Cookie を使わないため
- * `credentials: false`。
+ * 認証は httpOnly Cookie（access_token/refresh_token/csrf_secret）方式のため
+ * `credentials: true`（ブラウザが Cookie を送受信できるようにする）。
+ * CSRF 対策の Signed Double-Submit Cookie で使う `X-CSRF-Token` ヘッダーも
+ * 許可しないと、ブラウザがプリフライトで実リクエストを弾いてしまう。
  *
- * 重要: このミドルウェアは authMiddleware より**前**に適用すること。
+ * 重要: このミドルウェアは authGuard より**前**に適用すること。
  * cors は OPTIONS プリフライトを 204 で短絡して `next()` を呼ばないため、
- * 後ろに置くとプリフライト（Authorization ヘッダーなし）が auth に届いて
+ * 後ろに置くとプリフライト（Cookie 未送信）が auth に届いて
  * 401 になり、ブラウザが実リクエストを送れなくなる。
  */
 export const corsMiddleware = cors({
   origin: ALLOWED_ORIGINS,
-  credentials: false,
+  credentials: true,
   allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowHeaders: ["Authorization", "Content-Type"],
+  allowHeaders: ["Authorization", "Content-Type", "X-CSRF-Token"],
 });

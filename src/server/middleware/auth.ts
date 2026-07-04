@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { decode, verify } from "hono/jwt";
 import type { HonoVariables } from "@shared/types/hono";
+import { getAccessToken } from "../lib/authCookies";
 
 /**
  * Supabase の JWKS（ES256 公開鍵）をモジュール変数にキャッシュする。
@@ -28,6 +29,7 @@ export function __resetJwksCache(): void {
 
 /**
  * ES256 / JWKS ベースの JWT 検証ミドルウェア。
+ * - トークンは `access_token` httpOnly Cookie から取得する（Authorization ヘッダーは見ない）
  * - `hono/jwt` の verify() で署名と exp を検証
  * - aud === "authenticated" / role === "authenticated" を明示チェックし、
  *   anon / service_role トークンを弾く
@@ -37,11 +39,10 @@ export const authMiddleware = createMiddleware<{
   Bindings: CloudflareBindings;
   Variables: HonoVariables;
 }>(async (c, next) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
+  const token = getAccessToken(c);
+  if (!token) {
     return c.json({ error: "Unauthorized" }, 401);
   }
-  const token = authHeader.slice("Bearer ".length);
 
   try {
     const keys = await getJwks(c.env.SUPABASE_URL);
