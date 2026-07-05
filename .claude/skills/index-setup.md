@@ -1,6 +1,6 @@
 # index-setup スキル
 
-`.claude/docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ）、および `.claude/skills/` に、ファイル一覧と役割をまとめた `INDEX.md` を一括作成・更新する。
+`.claude/docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ）、`.claude/skills/`、`.claude/rules/`、および `.claude/agents/` に、ファイル一覧と役割をまとめた `INDEX.md` を一括作成・更新する。
 
 ## 使用シチュエーション
 
@@ -18,7 +18,7 @@
 ```markdown
 ## フォルダ索引（INDEX.md）
 
-`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`rules/`・`tech-spec/`・`migrations/`）、および `.claude/skills/` には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。`.claude/skills/` はサブフォルダを持たないため、フォルダ自体を1つの末端フォルダとして扱う。
+`docs/` 配下の末端フォルダ（実ファイルが直接置かれるフォルダ。例: `features/<機能グループ>/`・`rules/`・`tech-spec/`・`migrations/`）、`.claude/skills/`、`.claude/rules/`、および `.claude/agents/` には、フォルダ内のファイル一覧とその役割をまとめた `INDEX.md` を置く。`.claude/skills/`・`.claude/rules/`・`.claude/agents/` はサブフォルダを持たないため、フォルダ自体を1つの末端フォルダとして扱う。
 
 ### 目的
 
@@ -30,11 +30,13 @@
 |---|---|
 | <連番を除いたベース名> | <1行で役割> |
 
-同じベース名で連番違いの複数ファイル（例: `user-management-doc-01.md` / `user-management-doc-02.md`）は1行にまとめる。最新版は「最も連番が高いファイルを参照する」という既定で判別できるため、索引側に最新版番号は明記しない。
+同じベース名で連番違いの複数ファイル（例: `user-management-doc-01.md` / `user-management-doc-02.md`）は1行にまとめる。最新版はCLAUDE.md既定（最も連番が高いファイルを参照）で判別できるため、索引側に最新版番号は明記しない。
+
+連番サフィックスを持たないファイル（例: `docs/rules/` 配下の各ルールファイル）は、ファイル名をそのままベース名とする。
 
 ### 維持管理
 
-`INDEX.md` の作成・更新は `doc-push-agent`（相当のagent）が行う。
+`INDEX.md` の作成・更新は `doc-push-agent` が行う（[.claude/agents/doc-push-agent.md](../agents/doc-push-agent.md) 参照）。
 ```
 
 ### Step 2: 対象フォルダを洗い出す
@@ -43,7 +45,7 @@
 find .claude/docs -mindepth 1 -type d
 ```
 
-に加えて `.claude/skills/` 自体も対象に含める（`.claude/skills/` はサブフォルダを持たないため、フォルダそのものを1つの末端フォルダとして扱う）。
+に加えて `.claude/skills/`・`.claude/rules/`・`.claude/agents/` 自体も対象に含める（いずれもサブフォルダを持たないため、フォルダそのものを1つの末端フォルダとして扱う）。
 
 いずれも、直下に `.md` ファイルを持つフォルダ（末端フォルダ）を対象にする。
 
