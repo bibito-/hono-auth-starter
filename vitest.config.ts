@@ -11,6 +11,16 @@ import path from "path";
 // 未設定（ローカル統合 dev / Worker デプロイ）では従来どおり両プラグインを有効化。
 const isVercelBuild = process.env.VERCEL === "1";
 
+// vitest 実行時（vitest が自動で VITEST=true を立てる）も cloudflare()/agents() を外す。
+// cloudflare() は Worker 用 Vite environment を生成するが、その environment に
+// resolve.external（Node組み込みモジュール一覧）が設定されており、これが
+// cloudflare() 自身のバリデーションに引っかかり Startup Error になるため
+// （エラー: "resolve.external ... incompatible with the Cloudflare Vite plugin"）。
+// 将来 vitest-pool-workers 等でworkerd環境そのものをテストする場合はこの分岐ごと見直すこと。
+// TODO: Vercel・Cloudflareのプロジェクト作成が完了したタイミングで、この isTestRun 分岐が
+// まだ必要か（cloudflare()プラグイン側の非互換が解消されているか）を再確認し、不要なら削除すること。
+const isTestRun = process.env.VITEST === "true";
+
 export default defineConfig({
     server: {
     host: true,
@@ -22,7 +32,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    ...(isVercelBuild ? [] : [cloudflare(), agents()]),
+    ...(isVercelBuild || isTestRun ? [] : [cloudflare(), agents()]),
   ],
   test: {
     environment: "jsdom",
@@ -34,6 +44,30 @@ export default defineConfig({
       "@client": path.resolve(__dirname, "./src/client"),
       "@server": path.resolve(__dirname, "./src/server"),
       "@shared": path.resolve(__dirname, "./src/shared"),
+    },
+  },
+   build: {
+    rollupOptions: {
+      // vendor 分割は本番 SPA を配信する Vercel ビルドのみに適用する。
+      // Worker ビルド（API 専用・wrangler deploy）は従来どおり単一バンドルのまま触らない。
+      output: isVercelBuild
+        ? {
+            // Vite 8（Rolldown）の vendor 分割。manualChunks/advancedChunks は deprecated で、
+            // 現行は codeSplitting を使う（advancedChunks と codeSplitting を併記すると前者は無視される）。
+            // 安定した重量級依存をチャンク分離し、単一バンドルの 500kB 超を解消＋キャッシュ効率を上げる。
+            // 公式: https://rolldown.rs/in-depth/manual-code-splitting
+            codeSplitting: {
+              groups: [
+                { name: "react-vendor", test: /[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/ },
+                { name: "supabase", test: /[\\/]node_modules[\\/]@supabase[\\/]/ },
+                { name: "query", test: /[\\/]node_modules[\\/]@tanstack[\\/]/ },
+                { name: "dnd", test: /[\\/]node_modules[\\/]@dnd-kit[\\/]/ },
+                { name: "form-vendor", test: /[\\/]node_modules[\\/](react-hook-form|@hookform|zod|react-day-picker)[\\/]/ },
+                { name: "vendor", test: /[\\/]node_modules[\\/]/ },
+              ],
+            },
+          }
+        : {},
     },
   },
 });
