@@ -37,7 +37,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 
 # 実装時の参照ドキュメント
 
-実装・変更・デバッグ・動作確認など何らかの作業に着手する前に、`.claude/docs/rules/INDEX.md` を読み、これから触るドメイン（React・Supabase認証・Supabase DB・TanStack Query・UI・UXフィードバック・テスト・ローカル動作確認・エラーログ等）に対応するルールファイルがあれば参照すること。
+`.claude/docs/`・`.claude/rules/`・`.claude/skills/` 配下のフォルダを参照するときは、まず該当フォルダの `INDEX.md` を読み、関連ドキュメントがあれば参照すること。
 
 # .claude/ ディレクトリ構成
 
