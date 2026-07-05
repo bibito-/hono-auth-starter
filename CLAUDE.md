@@ -84,4 +84,6 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 6. コンテンツ機能を実装: `src/client/contexts/ContentRepositoryContext.tsx` の型・`src/client/components/pages/ContentPage.tsx` を実際のコンテンツに差し替え、必要な API を `src/server.ts` に追加
 7. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
 
+**本番デプロイ前に確認すべきこと（Agents SDK の instance name 露出）:** `agents` パッケージの `Agent` クラスは既定で `sendIdentityOnConnect: true` であり、`idFromName`/`getAgentByName` に渡したインスタンス名をクライアント接続時に `{ type: "cf_agent_identity", name, agent }` メッセージとして自動送信する。`user_id` 等の機微な値をインスタンス名に使う Agent クラス（例: コンテンツ機能実装時に追加する per-user 通知用 DO）を作成した場合、本番デプロイ前に該当クラスへ `static options = { sendIdentityOnConnect: false }` を追加すること。詳細は [.claude/docs/rules/agents-sdk-rules.md](.claude/docs/rules/agents-sdk-rules.md) 参照。clone直後〜launchまでの開発中は既定値（true）のままで問題ない。
+
 **既知の deploy warning（対応不要）:** `pnpm run deploy` 実行時に `--minify と --no-bundle` 併用不可・`run_worker_first=true set without an assets binding` の2件の warning が出るが、`@cloudflare/vite-plugin` の仕様上の既知事項で対応不要。`wrangler.jsonc`/`vite.config.ts`/`deploy` スクリプトを変更して消そうとすると、Worker が意図せず SPA を配信してしまう regression を招くので触らないこと。

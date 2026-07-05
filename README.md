@@ -81,7 +81,10 @@ VITE_API_BASE_URL=
 □ 権限外ロールが 403 になる
 □ CORS: 許可オリジンからのプリフライトが 204 になる
 □ 本番 Cloudflare Worker に `wrangler secret put` でシークレットを登録済み
+□ user_id 等の機微な値をインスタンス名に使う Agent（Durable Object）クラスがある場合、`static options = { sendIdentityOnConnect: false }` を設定済み
 ```
+
+**Durable Object の instance name 露出に関する注意:** Cloudflare Agents SDK（`agents` パッケージ）の `Agent` クラスは既定で `sendIdentityOnConnect: true` であり、`idFromName`/`getAgentByName` に渡したインスタンス名をクライアント接続時に自動送信する（`cf_agent_identity`）。`user_id` 等の機微な値をインスタンス名に使うクラスを追加した場合は、本番デプロイ前に `static options = { sendIdentityOnConnect: false }` を追加すること。
 
 **既知の deploy warning（対応不要）:** `pnpm run deploy` 実行時に `--minify と --no-bundle` 併用不可・`run_worker_first=true set without an assets binding` の2件の warning が出るが、`@cloudflare/vite-plugin` の仕様上の既知事項で対応不要。設定ファイルを変更して消そうとすると、Worker が意図せず SPA を配信してしまう regression を招くので触らないこと。
 
