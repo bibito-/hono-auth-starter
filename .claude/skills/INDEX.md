@@ -9,3 +9,5 @@
 | pnpm-setup | pnpm v11のビルドスクリプト許可設定（pnpm-workspace.yaml） |
 | spec-workflow | 新機能の仕様書をspecs/に作成しユーザー承認を得てから実装へ渡す（`/spec`） |
 | tdd-workflow | TDD（Red→Green→Refactor）で機能実装を進める手順とパターン集（`/tdd`） |
+| workflow-kit-push | `.claude/` の core 変更を claude-workflow-kit へ push する手順（`/workflow-kit-push`） |
+| workflow-kit-pull | claude-workflow-kit の core 変更をこのプロジェクトへ取り込む手順（`/workflow-kit-pull`） |
