@@ -1,7 +1,7 @@
 # jwt-cookie-migration 実装仕様書
 
-最終更新: 2026-07-04
-ステータス: **仕様確認中**
+最終更新: 2026-07-05
+ステータス: 完了
 
 ## 概要
 
@@ -81,7 +81,7 @@ GET /api/auth/me  (authMiddleware通過が前提)
 対象: `src/server/middleware/{auth.ts, requireRole.ts}`（改修）, `src/server/middleware/{csrf.ts, routeGuards.ts}`（新規+`.test.ts`）
 
 - `auth.ts`: トークン取得元を`c.req.header("Authorization")`から`getAccessToken(c)`（Cookie）に変更。JWKS検証ロジック自体は変更なし
-- `requireRole.ts`: トークン取得元を同様に`getAccessToken(c)!`に変更。それ以外のロジックは変更なし
+- `requireRole.ts`: トークン取得元を同様に`getAccessToken(c)`に変更。それ以外のロジックは変更なし
 - `src/server/handlers/listUsers.ts`（改修・実装時に判明）: `requireRole.ts`と同様に`c.req.header("Authorization")`直読みが残っていたため`getAccessToken(c)`に変更（Step 5とは無関係だがCookie移行の影響を受けるため同時に対応）
 - `csrf.ts`（新規）: Signed Double-Submit Cookie検証ミドルウェア
 - `routeGuards.ts`（新規）: `authGuard`/`csrfGuard`。`AUTH_EXEMPT_PATHS = ["/api/auth/login", "/api/auth/signup", "/api/auth/refresh"]`、`CSRF_EXEMPT_PATHS = ["/api/auth/login", "/api/auth/signup"]`（ai-todoには`/api/todos/ws`関連の除外があるが、hono-auth-starterには存在しないため対象外）
@@ -205,3 +205,44 @@ src/
     ├── hooks/useUserManagement.ts  # 改修: profiles Realtime購読を削除、fetchUsers()手動再取得に変更
     └── main.tsx                    # 改修: SupabaseAuthService → HonoAuthServiceの差し替え
 ```
+
+## 修正履歴
+
+### listUsers.ts での Cookie 対応漏れ修正（2026-07-04）
+
+**種別:** バグ修正  
+**対象ファイル:** `src/server/handlers/listUsers.ts`
+
+**問題:** Step 2 で `auth.ts`・`requireRole.ts` のトークン取得元を `getAccessToken(c)` に変更したが、実装時に `listUsers.ts` 内に `c.req.header("Authorization")` の直読みが残っていることを発見。Cookie 化後の認証フローで `listUsers` API が 401 で失敗する状況が再現される。
+
+**原因:** Spec Step 2 の記載が `src/server/handlers/listUsers.ts` の対応を含めておらず、ファイルがスキップされていた。
+
+**対応:** `listUsers.ts` の `getAccessToken(c)` への変更を手動追加。`requireRole.ts` と同じパターン（RLS 委任・service_role 不使用）のため、他ユーザー管理ハンドラー（`updateUser.ts`・`deleteUser.ts`）とは異なり同様の修正が適用される。commit `[実装時に追加]` でコード反映。
+
+### logout.ts でのログ出力ルール違反修正（2026-07-04 → 2026-07-05）
+
+**種別:** バグ修正  
+**対象ファイル:** `src/server/handlers/auth/logout.ts`
+
+**問題:** Server Review Agent による第1回レビュー時に `logout.ts` のログ出力で生エラーオブジェクト（`Error`, `AuthError`）がそのまま出力されている違反を検出。`CLAUDE.md` の「絶対にやってはいけないこと」に該当する不適切なログが含まれていた。
+
+**原因:** エラーハンドリング時の実装で、エラー詳細をそのままログに流していた。
+
+**対応:** `logout.ts` のエラーログ出力を修正し、生オブジェクトの代わりに限定した情報（エラーメッセージ・コードのみ）を出力するように変更。修正内容は commit `eedbc48` に反映済み。Server Review Agent による再レビューで違反なし確認済み。
+
+### PR 統合と稼働確認完了（2026-07-05）
+
+**実装フェーズ:** 全スコープ実装完了・二段レビュー（Server/Client Agent）完了
+
+- **Server 側実装 PR:** `#2` - JWT Cookie 化・認証プロキシ・CSRF 二重送信対策等の全サーバー実装。commit `7bef437` で main merge
+- **Client 側実装 PR:** `#2` 続き - HonoAuthService・apiFetch 改修・useUserManagement 縮退等の全クライアント実装。commit `087c70e` で main merge
+- **Vitest 環境修正 PR:** `#3` - vitest.config.ts の cloudflare()・agents() プラグイン適用によるスタートアップエラー修正。commit `d21afd5` で main merge
+
+**スモークテスト:** ai-todo 本体での本番環境スモークテスト（移植元との動作確認）を完了済み。以下の機能について全項目 green：
+- ログイン・サインアップ（httpOnly Cookie 発行確認）
+- JWT リフレッシュ（CSRF トークン再計算確認）
+- ログアウト（Cookie クリア確認）
+- ユーザー管理画面（RBAC + 認証フロー）
+- 401・CSRF 403 エラーハンドリング
+
+hono-auth-starter への移植は ai-todo の忠実な移植であり、差分は hono-auth-starter 固有の構造調整（import パス・todos 機能削除）のみに限定される。server-review-agent・client-review-agent による実装レビューで設計違反は検出されず。ai-todo 側でのスモークテスト green を根拠として、ユーザー判断により hono-auth-starter 側でのスモークテストを実施せず green 扱いとした。
