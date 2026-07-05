@@ -7,3 +7,4 @@
 | delete-user-hono-migration-doc | ユーザー削除をSupabase Edge FunctionからHono `DELETE /api/admin/users/:id`へ移行した仕様 |
 | fetchUsers-hono-migration-doc | ユーザー一覧取得をクライアント直読みからHono `GET /api/users`へ移行した仕様 |
 | role-change-hono-migration-doc | ロール・表示名編集をHono `PATCH /api/users/:id`へ移行し権限マトリクスで守る仕様 |
+| user-management-realtime-doc | Supabase Realtime縮退運用をHono経由WebSocket（Durable Object通知）へ置き換える設計仕様。ai-todoから移植、現時点では未実装 |
