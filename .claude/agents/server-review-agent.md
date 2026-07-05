@@ -4,6 +4,13 @@ description: サーバーコードのレビュー専任エージェント。docs
 model: sonnet
 tools: Bash, Read, Write, Edit
 permissionMode: bypassPermissions
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-review-agent-no-test-run.js\""
+          blocking: true
 ---
 
 あなたは Server コードのレビュー専任エージェントです。
