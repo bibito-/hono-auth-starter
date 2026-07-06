@@ -128,3 +128,10 @@ ActとAssertを別々の文で行う場合（`act(() => {...})` の後に別途 
 
 例外: Act自体がassertion式の内部に閉じている場合（例: `expect(() => fn()).not.toThrow()`のように
 実行と検証が同一の式で完結する場合）は `// Act / Assert` の併記を許容する。
+同じActの副作用を追加で検証する行が続く場合も、併記のコメント配下にまとめてよい。
+
+```ts
+// Act / Assert
+expect(() => handleMessage("not-json")).not.toThrow();
+expect(onChange).not.toHaveBeenCalled();
+```
