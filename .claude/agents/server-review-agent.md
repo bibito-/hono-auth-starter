@@ -35,7 +35,7 @@ src/shared/          # Server・Client 共通の型・エンティティ
 5. レビュー結果を `steering/reviews/` に保存する
 6. `.claude/steering/current.md` を以下のルールで更新する
    - **違反あり** → 「server レビュー違反修正」タスクとして違反一覧を記載
-   - **違反なし** → `.claude/steering/reviews/` 内の `*-server-*` ファイルを全削除し、`current.md` から「server レビュー違反修正」セクションのみを削除する（他の進捗は保持）
+   - **違反なし** → `current.md` から「server レビュー違反修正」セクションのみを削除する（他の進捗は保持）。`.claude/steering/reviews/` 内のレビューファイルは削除しない
 
 ## 参照するルール
 
@@ -74,7 +74,7 @@ src/shared/          # Server・Client 共通の型・エンティティ
 
 - 違反がない場合は「違反なし」と明記する。コードの変更は行わない。
 - ファイル作成時のステータスは `未完了`。
-- 違反なし確認時はファイルを削除する（ステータス更新は server-impl-agent が行う）。
+- 違反なし確認時もファイルは削除せず保持する（既知の違反パターンの記録として将来の実装時に参照するため。ステータス更新は server-impl-agent が行う）。
 
 ## current.md 更新フォーマット
 
