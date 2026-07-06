@@ -30,7 +30,8 @@
 
 - `dev:cfw` の AI バインディング（`this.env.AI`）はリモート接続のため Cloudflare への通信が発生する
 - スモーク（本番での最終確認）は merge-gate.md に従い main マージ後に実施する
-- ポートを固定しているのは、`src/server/cors.ts` の `ALLOWED_ORIGINS` と実際のアクセスオリジンを一致させるため。Vite のポート自動繰り上げに任せると CORS エラーで疎通確認ができなくなる
+- ポートを固定しているのは、`src/server/cors.ts` の `LOCAL_ORIGINS` と実際のアクセスオリジンを一致させるため。Vite のポート自動繰り上げに任せると CORS エラーで疎通確認ができなくなる
+- `LOCAL_ORIGINS` はローカル開発用の固定配列（コード内定数）。デプロイ系（本番）のオリジンはここに含めず、`wrangler.jsonc` の `vars.PROD_VERCEL_ORIGIN` を経由して環境変数として CF 側で持つ（`src/server/cors.ts` 参照）
 
 ## DO SQLite の確認（enrich_errors など）
 
