@@ -50,6 +50,19 @@ git fetch origin main
 
 現在のブランチ（自分のworktree自身のブランチ）のまま、変更ファイルのみをステージしてコミットする。ローカルの `main` ブランチに切り替える必要はない。
 
+> **コミット前に、HEAD が origin/main より先行していないか必ず確認すること。**
+>
+> ```bash
+> git fetch origin main
+> git log --oneline origin/main..HEAD
+> ```
+>
+> ここに1件でもコミットが表示された場合、**何もコミットせず・何も push せず**に終了し、「HEAD が origin/main より N コミット先行しているため push を中止した」と、そのコミット一覧を添えて報告すること。
+>
+> 理由: このエージェントは `git push origin HEAD:main` を実行するため、HEAD にレビュー前の作業コミットがぶら下がっていると、それごと main に流し込んでしまう。実際に PR のレビュー前マージを引き起こした。手順1の fetch 以降に origin/main が進んだか（後述の `diverged` 判定）だけでは、この事故は検知できない。
+>
+> **この確認を省略・迂回してはならない。** レビュー前のコミットを main に載せるのは、たとえ内容が検証済みでも、依頼者の承認を奪う行為にあたる。
+
 ```bash
 git add .claude/<変更ファイル>
 git commit -m "docs: <変更内容の要約（日本語・簡潔に）>"
