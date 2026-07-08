@@ -10,3 +10,4 @@
 .claude/skills/workflow-kit-push.md
 .claude/skills/workflow-kit-pull.md
 .claude/manifests/workflow-kit-files.txt
+.github/workflows/workflow-kit-pull-check.yml

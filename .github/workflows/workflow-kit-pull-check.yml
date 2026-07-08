@@ -15,9 +15,12 @@ permissions:
 
 jobs:
   check:
+    # このファイル自身が core として claude-workflow-kit 経由で配布される。
+    # 正のリポジトリでは自分自身との差分検知になるため走らせない。
+    if: github.repository != 'bibito-/claude-workflow-kit'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout hono-auth-starter
+      - name: Checkout this repository
         uses: actions/checkout@v4
 
       - name: Clone claude-workflow-kit
@@ -27,10 +30,29 @@ jobs:
         id: diff
         run: |
           set -euo pipefail
+
+          kit_sha=$(git -C /tmp/claude-workflow-kit rev-parse HEAD)
+          echo "claude-workflow-kit HEAD: $kit_sha"
+
           body_file=/tmp/pr_body.md
-          echo "claude-workflow-kit との差分検知により自動更新されたファイル一覧:" > "$body_file"
+          echo "claude-workflow-kit (\`$kit_sha\`) との差分検知による自動更新:" > "$body_file"
           echo "" >> "$body_file"
           changed=0
+
+          # マニフェスト自身も同期対象なので、先にこれを取り込む。
+          # 古いマニフェストで回すと、kit が core に追加したファイルを取りこぼす。
+          manifest_path=.claude/manifests/workflow-kit-files.txt
+          src_manifest="/tmp/claude-workflow-kit/$manifest_path"
+          if [ -f "$src_manifest" ] && ! diff -q "$src_manifest" "$manifest_path" > /dev/null 2>&1; then
+            cp "$src_manifest" "$manifest_path"
+            echo "- \`$manifest_path\`" >> "$body_file"
+            changed=1
+          fi
+
+          # ループ中に cp がマニフェストを上書きしうる。入力fdを実ファイルに
+          # 繋いだままだと読み込み位置がずれ、以降のエントリが黙って読み飛ばされる。
+          manifest=/tmp/workflow-kit-files.snapshot
+          cp "$manifest_path" "$manifest"
 
           while IFS= read -r path; do
             [ -z "$path" ] && continue
@@ -55,13 +77,37 @@ jobs:
               echo "::warning::${path} が claude-workflow-kit に存在しません（スキップ）"
               continue
             fi
+
+            # GITHUB_TOKEN は .github/workflows/ の作成・更新を拒否する
+            # (refusing to allow a GitHub App to create or update workflow ... without `workflows` permission)。
+            # 自動PRに含めると push が弾かれるため、CI では適用せず差分の存在だけ知らせる。
+            # 実際の取り込みは人間が /workflow-kit-pull を実行したときに行う。
+            if [[ "$path" == .github/* ]]; then
+              if ! diff -q "$src" "$path" > /dev/null 2>&1; then
+                echo "::warning::${path} に差分があります。CIでは適用できません。ローカルで /workflow-kit-pull を実行してください"
+              fi
+              continue
+            fi
+
             if ! diff -q "$src" "$path" > /dev/null 2>&1; then
               mkdir -p "$(dirname "$path")"
               cp "$src" "$path"
               echo "- \`$path\`" >> "$body_file"
               changed=1
             fi
-          done < .claude/manifests/workflow-kit-files.txt
+          done < "$manifest"
+
+          # base SHA はファイル差分の有無に関わらず現在の kit HEAD を記録する。
+          # kit が進んだが core ファイルに差分がない場合でも base を進めないと、
+          # 手動の /workflow-kit-push が base 不一致で偽陽性のまま弾かれ続ける。
+          # base SHA はプロジェクト固有の同期状態なのでマニフェストには載せない。
+          base_file=.claude/manifests/workflow-kit-base.txt
+          current_base=$(cat "$base_file" 2>/dev/null || echo "")
+          if [ "$current_base" != "$kit_sha" ]; then
+            echo "$kit_sha" > "$base_file"
+            echo "- \`$base_file\` (base SHA: \`${current_base:-none}\` → \`$kit_sha\`)" >> "$body_file"
+            changed=1
+          fi
 
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
 
