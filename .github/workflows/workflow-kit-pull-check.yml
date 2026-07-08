@@ -1,6 +1,6 @@
 name: workflow-kit-pull-check
 
-# claude-workflow-kit（coreの正、PRIVATE）との差分を毎日チェックし、
+# claude-workflow-kit（coreの正、PUBLIC）との差分を毎日チェックし、
 # 差分があれば .claude/manifests/workflow-kit-files.txt の対象ファイルを自リポジトリへ反映してPRを立てる。
 # 自動マージはしない（PR発行止まり）。
 
@@ -21,9 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone claude-workflow-kit
-        env:
-          WORKFLOW_KIT_PAT: ${{ secrets.WORKFLOW_KIT_PAT }}
-        run: git clone --depth 1 "https://x-access-token:${WORKFLOW_KIT_PAT}@github.com/bibito-/claude-workflow-kit.git" /tmp/claude-workflow-kit
+        run: git clone --depth 1 https://github.com/bibito-/claude-workflow-kit.git /tmp/claude-workflow-kit
 
       - name: Diff manifest files
         id: diff
