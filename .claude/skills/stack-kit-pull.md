@@ -60,9 +60,27 @@ diff ../hono-auth-starter/.claude/manifests/stack-kit-files.txt .claude/manifest
 diff ../hono-auth-starter/.claude/<path> .claude/<path>
 ```
 
-- 差分なし → スキップ
-- hono-auth-starter 側にのみ存在（新規追加されたスタックファイル）→ 「新規取り込み候補」として扱う
-- 現在のプロジェクト側にのみ存在 → スタック範囲外か、まだ `/stack-kit-push` していない変更の可能性がある。取り込み対象外として報告するのみ（削除しない）。`/stack-kit-push` での反映を検討するよう案内する
+`diff` は差の有無しか返さず、hono-auth-starter とプロジェクトのどちらが新しいかを判別できない。単純に hono-auth-starter で上書きすると、プロジェクト側が先行しているファイルを巻き戻す。
+
+そこで `stack-kit-base.txt` に記録した SHA を**共通祖先**として三方向比較する。祖先のブロブは hono-auth-starter クローンから取得する。
+
+```bash
+git -C ../hono-auth-starter fetch --depth=1 origin "$(cat .claude/manifests/stack-kit-base.txt)"
+git -C ../hono-auth-starter show "<base_sha>:<path>"
+```
+
+| 祖先 | hono-auth-starter | project | 判定 | 対応 |
+|---|---|---|---|---|
+| A | A | A | 差分なし | スキップ |
+| A | B | A | hono-auth-starter のみ変更 | 取り込む |
+| A | A | B | project のみ変更 | 取り込まない。`/stack-kit-push` を案内する |
+| A | B | C | 双方変更 | 取り込まない。差分を提示して人間の判断を仰ぐ |
+
+その他の扱い:
+
+- hono-auth-starter 側にのみ存在（祖先に無い）→ hono-auth-starter で新規追加されたスタック層ファイル。取り込む
+- プロジェクト側にのみ存在 → スタック範囲外か未 push の変更。取り込み対象外として報告するのみ（削除しない）
+- 祖先を取得できない（base 未設定・force-push で消えた等）→ 方向判別できないため適用しない
 
 ### Step 4: 差分をユーザーに提示する
 
@@ -87,6 +105,8 @@ git -C ../hono-auth-starter rev-parse origin/main
 ```
 
 **差分が1件もなかった場合も更新する。** 「取り込むものが無かった」＝「最新に追いついている」であり、base を進めないと以降の push が不必要に弾かれ続ける。
+
+ただし**取り込み切れなかったファイルが1つでもある場合は base を進めてはならない**（双方変更・祖先不明・保留したファイルがある場合）。進めると共通祖先が kit と一致し、未取り込みのファイルが次回から「project が先行」と誤分類されて永久に同期されなくなる。
 
 ### Step 7: doc-push-agent に委譲してコミット・push する
 
