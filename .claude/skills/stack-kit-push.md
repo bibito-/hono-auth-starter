@@ -87,6 +87,12 @@ git rev-parse HEAD origin/main
 
 コピー元プロジェクト側の `.claude/manifests/stack-kit-base.txt` を読み、`origin/main` SHA と比較する。
 
+```bash
+base_sha=$(cat .claude/manifests/stack-kit-base.txt 2>/dev/null || echo "")
+```
+
+**ファイルが存在しない場合は不一致として扱う。** base SHA は配布対象外なので、スタック層を導入した直後のプロジェクトには存在しない。エラーで停止させず、未同期とみなして pull に作らせる。
+
 不一致なら **push せずに終了し、先に `/stack-kit-pull` を実行するよう案内する。**
 
 一致していれば Step 4 へ進む。

@@ -78,6 +78,8 @@ cp ../hono-auth-starter/.claude/<path> .claude/<path>
 
 hono-auth-starter の `origin/main` SHA を `.claude/manifests/stack-kit-base.txt` に1行で書き込む。
 
+ファイルが存在しなければ新規作成する。base SHA は配布対象外なので、スタック層を導入した直後のプロジェクトには存在せず、この Step が唯一の生成契機になる。
+
 ```bash
 git -C ../hono-auth-starter rev-parse origin/main
 ```
