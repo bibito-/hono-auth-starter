@@ -16,3 +16,4 @@
 .claude/skills/stack-kit-push.md
 .claude/skills/stack-kit-pull.md
 .claude/manifests/stack-kit-files.txt
+.github/workflows/stack-kit-pull-check.yml

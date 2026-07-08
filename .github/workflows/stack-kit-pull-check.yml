@@ -1,0 +1,118 @@
+name: stack-kit-pull-check
+
+# hono-auth-starter（Hono+Supabaseスタックの正、PRIVATE）との差分を毎日チェックし、
+# 差分があれば対象ファイルを自リポジトリへ反映してPRを立てる。
+# 対象ファイル一覧は .claude/manifests/stack-kit-files.txt を単一の正として参照する。
+# 自動マージはしない（PR発行止まり）。
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # UTC 0時 = JST朝9時
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    # このファイル自身がスタック層として hono-auth-starter 経由で配布される。
+    # 正のリポジトリでは自分自身との差分検知になるため走らせない。
+    if: github.repository != 'bibito-/hono-auth-starter'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      # hono-auth-starter は PRIVATE のため PAT が要る。
+      # checkout の path は workspace 内に限られるので .stack-kit-src に置き、
+      # diff 後に必ず削除して PR に混入させない。
+      - name: Checkout hono-auth-starter
+        uses: actions/checkout@v4
+        with:
+          repository: bibito-/hono-auth-starter
+          token: ${{ secrets.STACK_KIT_PAT }}
+          path: .stack-kit-src
+
+      - name: Diff manifest files
+        id: diff
+        run: |
+          set -euo pipefail
+
+          # .stack-kit-src は後続ステップで削除されるため、SHA はここで取る。
+          kit_sha=$(git -C .stack-kit-src rev-parse HEAD)
+          echo "hono-auth-starter HEAD: $kit_sha"
+
+          body_file=/tmp/pr_body.md
+          echo "hono-auth-starter (\`$kit_sha\`) との差分検知による自動更新:" > "$body_file"
+          echo "" >> "$body_file"
+          changed=0
+
+          # マニフェスト自身も同期対象なので、先にこれを取り込む。
+          # 古いマニフェストで回すと、kit がスタック層に追加したファイルを取りこぼす。
+          manifest_path=.claude/manifests/stack-kit-files.txt
+          src_manifest=".stack-kit-src/$manifest_path"
+          if [ -f "$src_manifest" ] && ! diff -q "$src_manifest" "$manifest_path" > /dev/null 2>&1; then
+            cp "$src_manifest" "$manifest_path"
+            echo "- \`$manifest_path\`" >> "$body_file"
+            changed=1
+          fi
+
+          # ループ中に cp がマニフェストを上書きしうる。入力fdを実ファイルに
+          # 繋いだままだと読み込み位置がずれ、以降のエントリが黙って読み飛ばされる。
+          manifest=/tmp/stack-kit-files.snapshot
+          cp "$manifest_path" "$manifest"
+
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            src=".stack-kit-src/$path"
+            if [ ! -f "$src" ]; then
+              echo "::warning::${path} が hono-auth-starter に存在しません（スキップ）"
+              continue
+            fi
+
+            # GITHUB_TOKEN は .github/workflows/ の作成・更新を拒否する
+            # (refusing to allow a GitHub App to create or update workflow ... without `workflows` permission)。
+            # 自動PRに含めると push が弾かれるため、CI では適用せず差分の存在だけ知らせる。
+            # 実際の取り込みは人間が /stack-kit-pull を実行したときに行う。
+            if [[ "$path" == .github/* ]]; then
+              if ! diff -q "$src" "$path" > /dev/null 2>&1; then
+                echo "::warning::${path} に差分があります。CIでは適用できません。ローカルで /stack-kit-pull を実行してください"
+              fi
+              continue
+            fi
+
+            if ! diff -q "$src" "$path" > /dev/null 2>&1; then
+              mkdir -p "$(dirname "$path")"
+              cp "$src" "$path"
+              echo "- \`$path\`" >> "$body_file"
+              changed=1
+            fi
+          done < "$manifest"
+
+          # base SHA はファイル差分の有無に関わらず現在の kit HEAD を記録する。
+          # kit が進んだがスタック層に差分がない場合でも base を進めないと、
+          # 手動の /stack-kit-push が base 不一致で偽陽性のまま弾かれ続ける。
+          # base SHA はプロジェクト固有の同期状態なのでマニフェストには載せない。
+          base_file=.claude/manifests/stack-kit-base.txt
+          current_base=$(cat "$base_file" 2>/dev/null || echo "")
+          if [ "$current_base" != "$kit_sha" ]; then
+            echo "$kit_sha" > "$base_file"
+            echo "- \`$base_file\` (base SHA: \`${current_base:-none}\` → \`$kit_sha\`)" >> "$body_file"
+            changed=1
+          fi
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Remove hono-auth-starter checkout
+        if: always()
+        run: rm -rf .stack-kit-src
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == '1'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "docs: stack-kit-pull自動検知によるhono-auth-starter差分反映"
+          branch: stack-kit-pull/auto
+          title: "stack-kit-pull: hono-auth-starterとの差分を反映"
+          body-path: /tmp/pr_body.md
