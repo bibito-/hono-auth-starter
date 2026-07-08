@@ -165,10 +165,9 @@ gh pr create --title "..." --body "..." --base main
    - 移動後、`.claude/specs/<機能名>/` ディレクトリを削除
    - 命名・配置ルールは [documentation-guide.md](../rules/documentation-guide.md) を参照
 
-2. **steering/current.md を更新**
-   - 進行中タスクのゴール・フェーズ・次のステップを削除
-   - 「完了済み」に `- <機能名>（<日付>）` を追記
-   - 「進行中タスク: なし」状態に戻す
+2. **steering を更新**
+   - `current.md`: 進行中タスクのゴール・フェーズ・次のステップを削除し「進行中タスク: なし」状態に戻す
+   - `history.md`: 「完了済み」に `- <機能名>（<日付>）` を追記
 
 3. **ローカル main を最新化**
    ```bash
