@@ -1,0 +1,77 @@
+name: workflow-kit-pull-check
+
+# claude-workflow-kit（coreの正、PRIVATE）との差分を毎日チェックし、
+# 差分があれば .claude/manifests/workflow-kit-files.txt の対象ファイルを自リポジトリへ反映してPRを立てる。
+# 自動マージはしない（PR発行止まり）。
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # UTC 0時 = JST朝9時
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hono-auth-starter
+        uses: actions/checkout@v4
+
+      - name: Clone claude-workflow-kit
+        env:
+          WORKFLOW_KIT_PAT: ${{ secrets.WORKFLOW_KIT_PAT }}
+        run: git clone --depth 1 "https://x-access-token:${WORKFLOW_KIT_PAT}@github.com/bibito-/claude-workflow-kit.git" /tmp/claude-workflow-kit
+
+      - name: Diff manifest files
+        id: diff
+        run: |
+          set -euo pipefail
+          body_file=/tmp/pr_body.md
+          echo "claude-workflow-kit との差分検知により自動更新されたファイル一覧:" > "$body_file"
+          echo "" >> "$body_file"
+          changed=0
+
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+
+            if [[ "$path" == */ ]]; then
+              src_dir="/tmp/claude-workflow-kit/${path}"
+              [ -d "$src_dir" ] || { echo "::warning::${path} が claude-workflow-kit に存在しません（スキップ）"; continue; }
+              while IFS= read -r -d '' src_file; do
+                rel="${src_file#/tmp/claude-workflow-kit/}"
+                if ! diff -q "$src_file" "$rel" > /dev/null 2>&1; then
+                  mkdir -p "$(dirname "$rel")"
+                  cp "$src_file" "$rel"
+                  echo "- \`$rel\`" >> "$body_file"
+                  changed=1
+                fi
+              done < <(find "$src_dir" -type f -name '*.js' -print0)
+              continue
+            fi
+
+            src="/tmp/claude-workflow-kit/$path"
+            if [ ! -f "$src" ]; then
+              echo "::warning::${path} が claude-workflow-kit に存在しません（スキップ）"
+              continue
+            fi
+            if ! diff -q "$src" "$path" > /dev/null 2>&1; then
+              mkdir -p "$(dirname "$path")"
+              cp "$src" "$path"
+              echo "- \`$path\`" >> "$body_file"
+              changed=1
+            fi
+          done < .claude/manifests/workflow-kit-files.txt
+
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == '1'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "docs: workflow-kit-pull自動検知によるclaude-workflow-kit差分反映"
+          branch: workflow-kit-pull/auto
+          title: "workflow-kit-pull: claude-workflow-kitとの差分を反映"
+          body-path: /tmp/pr_body.md
