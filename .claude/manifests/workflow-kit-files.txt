@@ -7,3 +7,6 @@
 .claude/rules/grill-me.md
 .claude/skills/merge-gate.md
 .claude/docs/rules/terminology-rules.md
+.claude/skills/workflow-kit-push.md
+.claude/skills/workflow-kit-pull.md
+.claude/manifests/workflow-kit-files.txt

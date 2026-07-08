@@ -14,20 +14,21 @@ hono-auth-starter ├─ core の変更を都度 push ─→ claude-workflow-kit
 
 ## core の範囲（単一の正）
 
-以下に該当するファイルだけが対象。これ以外（impl/review agent 定義・スタック依存の docs/rules・specs/steering 等）は対象外。
+対象ファイル一覧は [`.claude/manifests/workflow-kit-files.txt`](../manifests/workflow-kit-files.txt)（1行1パス。末尾が`/`の行はディレクトリ配下を再帰対象とする）を単一の正とする。これ以外（impl/review agent 定義・スタック依存の docs/rules・specs/steering 等）は対象外。
 
-```
-.claude/hooks/*.js
-.claude/agents/doc-push-agent.md
-.claude/agents/tsc-agent.md
-.claude/rules/agent-definition-guide.md
-.claude/rules/documentation-guide.md
-.claude/rules/grill-me.md
-.claude/skills/merge-gate.md
-.claude/docs/rules/terminology-rules.md
-```
+このマニフェスト自身と push/pull スキル本体もマニフェストに含める（同期機構の自己ホスト）。含めないと、機構を改善しても配布先には古いスキルが残り、SHA ガードが素通りする。
 
-> この一覧を増減させたときは、`claude-workflow-kit` の README.md（core/template 切り分け表）とこのリストの両方を更新すること。
+> **`workflow-kit-base.txt` は絶対にマニフェストに載せない。** これはプロジェクトごとの同期状態であり、配布すると全プロジェクトの base SHA が上書きされてガードが壊れる。`.claude/manifests/` をディレクトリ行（末尾 `/`）で指定しないこと。ファイルを個別に列挙する。
+
+> マニフェストを増減させたときは、`claude-workflow-kit` の README.md（core/template 切り分け表）も合わせて更新すること。
+
+## 同期基準（base SHA）
+
+`.claude/manifests/workflow-kit-base.txt` に、このプロジェクトの core が最後に同期した claude-workflow-kit のコミット SHA を1行だけ記録する。
+
+push 時にこの SHA が kit の `origin/main` と一致しなければ、このプロジェクトは kit の最新を取り込んでいない。そのまま push すると他プロジェクトが反映済みの変更を巻き戻す（ロストアップデート）。
+
+これは誤操作を防ぐためのガードであり、不正を防ぐものではない（`base.txt` を手で書き換えれば素通りする）。バイパス不能な強制は kit リポジトリ側の CI / branch protection でしか実現できない。
 
 ## 呼び出し方
 
@@ -57,14 +58,38 @@ ls ../claude-workflow-kit 2>/dev/null || gh repo clone bibito-/claude-workflow-k
 
 `../claude-workflow-kit` は現在のプロジェクトルート（`git rev-parse --show-toplevel`）から見た兄弟ディレクトリ。固定の絶対パスにはしないこと。
 
-### Step 3: 最新化と差分確認
+### Step 3: クローンの一致確認と base SHA 検証
 
 ```bash
 cd ../claude-workflow-kit && git fetch origin main -q
-git merge-base --is-ancestor origin/main HEAD && echo "up-to-date" || echo "diverged"
+git rev-parse HEAD origin/main
 ```
 
-`diverged` の場合は push せず、競合の可能性を報告して終了する（自動 rebase/merge はしない）。
+**3-a. クローンが `origin/main` と完全一致しているか確認する。**
+
+`HEAD` != `origin/main` なら push せずに終了し、状況を報告する。
+
+| 状態 | 判定方法 | 対応 |
+|---|---|---|
+| behind | `HEAD` が `origin/main` の祖先 | `git pull origin main` で更新してからやり直す |
+| ahead | `origin/main` が `HEAD` の祖先 | クローンに未 push のコミットがある。内容を報告してユーザーの判断を仰ぐ（勝手に push しない） |
+| diverged | どちらも祖先でない | 自動 rebase/merge はせず報告して終了する |
+
+> 旧版は `git merge-base --is-ancestor origin/main HEAD` だけで判定していたが、これは ahead を "up-to-date" と誤判定する。その状態で `git push origin main` すると、素性不明のローカルコミットまで一緒に送ってしまう。完全一致で判定すること。
+
+**3-b. base SHA を検証する。**
+
+コピー元プロジェクト側の `.claude/manifests/workflow-kit-base.txt` を読み、kit の `origin/main` SHA と比較する。
+
+```bash
+base_sha=$(cat .claude/manifests/workflow-kit-base.txt 2>/dev/null || echo "")
+```
+
+**ファイルが存在しない場合は不一致として扱う。** base SHA は配布対象外なので、core を導入した直後のプロジェクトには存在しない。エラーで停止させず、未同期とみなして pull に作らせる。
+
+不一致なら **push せずに終了し、先に `/workflow-kit-pull` を実行するよう案内する。**
+
+一致していれば Step 4 へ進む。
 
 ### Step 4: 変更ファイルをコピーする
 
@@ -78,6 +103,12 @@ cp <元プロジェクト>/.claude/<path> ../claude-workflow-kit/.claude/<path>
 
 コピーしたファイルを読み、コピー元プロジェクト固有の値（絶対パス・プロジェクト名・機能名の実例等）が残っていないか確認する。`documentation-guide.md` のような例示目的の固有名は許容するが、動作に影響する固定値（ハードコードされたリポジトリパス等）は汎用化してから進める。
 
+補助として、スタック固有語が混入していないか grep する。ヒットしても自動拒否はせず、例示目的か動作依存かを判断する。
+
+```bash
+grep -rniE 'wrangler|cloudflare|supabase|\bhono\b' <コピーしたファイル>
+```
+
 ### Step 6: コミットして push する
 
 対象ファイルのみを `git add` する（他の未コミット変更を巻き込まない）。
@@ -90,6 +121,18 @@ git push origin main
 
 push 失敗（競合）の場合はエラーをそのまま報告する。
 
-### Step 7: 完了報告
+### Step 7: base SHA を更新する
 
-push したコミットハッシュを報告する。ai-todo 側の `steering/current.md` への記録は不要（claude-workflow-kit 側の commit history が記録そのもの）。
+push 直後の claude-workflow-kit の HEAD SHA を取得し、コピー元プロジェクトの `.claude/manifests/workflow-kit-base.txt` に1行で書き戻す。
+
+```bash
+git -C ../claude-workflow-kit rev-parse HEAD
+```
+
+このファイルはコピー元プロジェクト側の `.claude/` 配下なので、コミット・push は doc-push-agent に委譲する（対象ファイルを明示列挙する）。
+
+これを忘れると次回 push が必ず弾かれる（base が古いままになるため）。
+
+### Step 8: 完了報告
+
+push したコミットハッシュと、更新後の base SHA を報告する。コピー元プロジェクト側の `steering/current.md` への記録は不要（claude-workflow-kit 側の commit history が記録そのもの）。
