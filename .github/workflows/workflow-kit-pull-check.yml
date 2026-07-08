@@ -1,8 +1,12 @@
 name: workflow-kit-pull-check
 
 # claude-workflow-kit（coreの正、PUBLIC）との差分を毎日チェックし、
-# 差分があれば .claude/manifests/workflow-kit-files.txt の対象ファイルを自リポジトリへ反映してPRを立てる。
+# 差分があれば対象ファイルを自リポジトリへ反映してPRを立てる。
+# 対象ファイル一覧は .claude/manifests/workflow-kit-files.txt を単一の正として参照する。
 # 自動マージはしない（PR発行止まり）。
+#
+# 取り込みの方向は base SHA を共通祖先とした三方向比較で決める。
+# プロジェクト側が先行しているファイルを kit の内容で巻き戻さないため。
 
 on:
   schedule:
@@ -31,23 +35,95 @@ jobs:
         run: |
           set -euo pipefail
 
-          kit_sha=$(git -C /tmp/claude-workflow-kit rev-parse HEAD)
+          KIT=/tmp/claude-workflow-kit
+          kit_sha=$(git -C "$KIT" rev-parse HEAD)
           echo "claude-workflow-kit HEAD: $kit_sha"
+
+          base_file=.claude/manifests/workflow-kit-base.txt
+          base_sha=$(cat "$base_file" 2>/dev/null || echo "")
+          echo "base SHA: ${base_sha:-none}"
+
+          # 共通祖先のブロブを読むために base コミットだけ取り寄せる。
+          # depth-1 クローンには履歴が無いが、GitHub は ref から到達可能な SHA の fetch を許す。
+          # 取れない場合（base 未設定・force-push で消えた等）は方向判別せず、安全側に倒す。
+          ancestor_ok=0
+          if [ -n "$base_sha" ] && git -C "$KIT" fetch --depth=1 origin "$base_sha" -q 2>/dev/null; then
+            ancestor_ok=1
+          else
+            echo "::notice::共通祖先 (${base_sha:-none}) を取得できません。差分のあるファイルは適用せず警告します"
+          fi
+
+          # base(共通祖先) / kit / project の三方向比較で取り込み方向を決める。
+          #   same       … 差分なし
+          #   kit        … kit だけが変更 → 取り込む
+          #   local      … project だけが変更 → 取り込まない（push を促す）
+          #   conflict   … 双方が変更 → 適用せず報告する
+          #   noancestor … 祖先不明 → 適用しない
+          classify() {
+            local p="$1" src="$KIT/$1"
+            [ -f "$p" ] || { echo kit; return; }
+            if diff -q "$src" "$p" > /dev/null 2>&1; then echo same; return; fi
+            if [ "$ancestor_ok" != "1" ]; then echo noancestor; return; fi
+            local b=/tmp/base_blob
+            if ! git -C "$KIT" show "$base_sha:$p" > "$b" 2>/dev/null; then
+              echo kit; return   # 祖先に無い = kit で新規追加された
+            fi
+            local kit_same=1 proj_same=1
+            diff -q "$b" "$src" > /dev/null 2>&1 || kit_same=0
+            diff -q "$b" "$p"   > /dev/null 2>&1 || proj_same=0
+            if [ "$kit_same" = "0" ] && [ "$proj_same" = "1" ]; then echo kit
+            elif [ "$kit_same" = "1" ] && [ "$proj_same" = "0" ]; then echo local
+            else echo conflict; fi
+          }
 
           body_file=/tmp/pr_body.md
           echo "claude-workflow-kit (\`$kit_sha\`) との差分検知による自動更新:" > "$body_file"
           echo "" >> "$body_file"
           changed=0
+          # 取り込み切れなかったファイルが1つでもあれば base を進めない。
+          # 進めてしまうと共通祖先が kit と一致し、未取り込みのファイルが
+          # 翌回から「project が先行」と誤分類されて永久に同期されなくなる。
+          blocked=0
+
+          # 1ファイルを分類し、kit 方向のときだけ適用する。
+          apply_one() {
+            local path="$1" src="$KIT/$1" verdict
+            verdict=$(classify "$path")
+            case "$verdict" in
+              same) ;;
+              kit)
+                # GITHUB_TOKEN は .github/workflows/ の作成・更新を拒否する
+                # (refusing to allow a GitHub App to create or update workflow ... without `workflows` permission)。
+                # 自動PRに含めると push が弾かれるため、CI では適用せず差分の存在だけ知らせる。
+                if [[ "$path" == .github/* ]]; then
+                  echo "::warning::${path} に kit 側の更新があります。CIでは適用できません。ローカルで /workflow-kit-pull を実行してください"
+                  blocked=1
+                  return
+                fi
+                mkdir -p "$(dirname "$path")"
+                cp "$src" "$path"
+                echo "- \`$path\`" >> "$body_file"
+                changed=1
+                ;;
+              local)
+                # local は定常状態（base は進む・対応不要）。warning は blocked=1 のものに限る。
+                echo "::notice::${path} はこのリポジトリ側が先行しています。巻き戻さず据え置きました。/workflow-kit-push で kit へ反映してください"
+                ;;
+              conflict)
+                echo "::warning::${path} は kit とこのリポジトリの双方が変更しています。自動では解決できません。手動で確認してください"
+                blocked=1
+                ;;
+              noancestor)
+                echo "::warning::${path} に差分がありますが共通祖先を取得できず方向を判別できません。適用しません"
+                blocked=1
+                ;;
+            esac
+          }
 
           # マニフェスト自身も同期対象なので、先にこれを取り込む。
           # 古いマニフェストで回すと、kit が core に追加したファイルを取りこぼす。
           manifest_path=.claude/manifests/workflow-kit-files.txt
-          src_manifest="/tmp/claude-workflow-kit/$manifest_path"
-          if [ -f "$src_manifest" ] && ! diff -q "$src_manifest" "$manifest_path" > /dev/null 2>&1; then
-            cp "$src_manifest" "$manifest_path"
-            echo "- \`$manifest_path\`" >> "$body_file"
-            changed=1
-          fi
+          [ -f "$KIT/$manifest_path" ] && apply_one "$manifest_path"
 
           # ループ中に cp がマニフェストを上書きしうる。入力fdを実ファイルに
           # 繋いだままだと読み込み位置がずれ、以降のエントリが黙って読み飛ばされる。
@@ -56,56 +132,33 @@ jobs:
 
           while IFS= read -r path; do
             [ -z "$path" ] && continue
+            [ "$path" = "$manifest_path" ] && continue
 
             if [[ "$path" == */ ]]; then
-              src_dir="/tmp/claude-workflow-kit/${path}"
-              [ -d "$src_dir" ] || { echo "::warning::${path} が claude-workflow-kit に存在しません（スキップ）"; continue; }
+              src_dir="$KIT/${path}"
+              [ -d "$src_dir" ] || { echo "::notice::${path} が claude-workflow-kit に存在しません（スキップ）"; continue; }
               while IFS= read -r -d '' src_file; do
-                rel="${src_file#/tmp/claude-workflow-kit/}"
-                if ! diff -q "$src_file" "$rel" > /dev/null 2>&1; then
-                  mkdir -p "$(dirname "$rel")"
-                  cp "$src_file" "$rel"
-                  echo "- \`$rel\`" >> "$body_file"
-                  changed=1
-                fi
+                apply_one "${src_file#$KIT/}"
               done < <(find "$src_dir" -type f -name '*.js' -print0)
               continue
             fi
 
-            src="/tmp/claude-workflow-kit/$path"
-            if [ ! -f "$src" ]; then
-              echo "::warning::${path} が claude-workflow-kit に存在しません（スキップ）"
+            if [ ! -f "$KIT/$path" ]; then
+              echo "::notice::${path} が claude-workflow-kit に存在しません（スキップ）"
               continue
             fi
-
-            # GITHUB_TOKEN は .github/workflows/ の作成・更新を拒否する
-            # (refusing to allow a GitHub App to create or update workflow ... without `workflows` permission)。
-            # 自動PRに含めると push が弾かれるため、CI では適用せず差分の存在だけ知らせる。
-            # 実際の取り込みは人間が /workflow-kit-pull を実行したときに行う。
-            if [[ "$path" == .github/* ]]; then
-              if ! diff -q "$src" "$path" > /dev/null 2>&1; then
-                echo "::warning::${path} に差分があります。CIでは適用できません。ローカルで /workflow-kit-pull を実行してください"
-              fi
-              continue
-            fi
-
-            if ! diff -q "$src" "$path" > /dev/null 2>&1; then
-              mkdir -p "$(dirname "$path")"
-              cp "$src" "$path"
-              echo "- \`$path\`" >> "$body_file"
-              changed=1
-            fi
+            apply_one "$path"
           done < "$manifest"
 
           # base SHA はファイル差分の有無に関わらず現在の kit HEAD を記録する。
           # kit が進んだが core ファイルに差分がない場合でも base を進めないと、
           # 手動の /workflow-kit-push が base 不一致で偽陽性のまま弾かれ続ける。
           # base SHA はプロジェクト固有の同期状態なのでマニフェストには載せない。
-          base_file=.claude/manifests/workflow-kit-base.txt
-          current_base=$(cat "$base_file" 2>/dev/null || echo "")
-          if [ "$current_base" != "$kit_sha" ]; then
+          if [ "$blocked" = "1" ]; then
+            echo "::warning::取り込めなかったファイルがあるため base SHA を進めません（現在: ${base_sha:-none}）"
+          elif [ "$base_sha" != "$kit_sha" ]; then
             echo "$kit_sha" > "$base_file"
-            echo "- \`$base_file\` (base SHA: \`${current_base:-none}\` → \`$kit_sha\`)" >> "$body_file"
+            echo "- \`$base_file\` (base SHA: \`${base_sha:-none}\` → \`$kit_sha\`)" >> "$body_file"
             changed=1
           fi
 
