@@ -202,6 +202,18 @@ cp <ai-todo>/.claude/docs/features/layout/ .claude/docs/features/layout/ -r
 
 `CLAUDE.md` はテンプレートとして新プロジェクト向けに書き直す（下記参照）。
 
+**kit 同期 workflow を設置する場合の注意:**
+
+新プロジェクトに `.github/workflows/stack-kit-pull-check.yml`（hono-auth-starter との差分検知）をコピーするときは、workflow ファイルの配置だけでは動かない。**hono-auth-starter は PRIVATE のため、clone に fine-grained PAT が必要**。
+
+1. fine-grained PAT を発行する。Resource owner = リポジトリのオーナー / Repository access = Only select repositories → `hono-auth-starter` / Repository permissions → Contents = Read-only（Account permissions 側ではない）
+2. `gh secret set STACK_KIT_PAT --repo <owner>/<新プロジェクト>` で登録する（**ユーザー自身が実行する。Claude は実行しない**）
+3. `gh workflow run stack-kit-pull-check.yml --repo <owner>/<新プロジェクト>` で疎通確認する
+
+core を pull する `workflow-kit-pull-check.yml` のほうは、claude-workflow-kit が PUBLIC なので PAT 不要。
+
+トークンの値は発行時にしか表示されない。値の一部でも会話・ログ・ファイルに貼ってしまった場合は失効させて再発行すること。
+
 ### Step 6 — Supabase セットアップ
 
 ```bash
