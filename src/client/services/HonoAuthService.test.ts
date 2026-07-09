@@ -169,6 +169,117 @@ describe("HonoAuthService", () => {
     });
   });
 
+  describe("forgotPassword", () => {
+    it("/api/auth/forgot-password を POST で呼ぶ", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(jsonResponse({ status: "sent" }));
+      const service = new HonoAuthService();
+
+      // Act
+      await service.forgotPassword("user@example.com");
+
+      // Assert
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "user@example.com" }),
+      });
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("成功時に { status: 'reset' } を返す", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(jsonResponse({ status: "reset" }));
+      const service = new HonoAuthService();
+
+      // Act
+      const result = await service.resetPassword("token-abc", "NewPass1");
+
+      // Assert
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token_hash: "token-abc", password: "NewPass1" }),
+      });
+      expect(result).toEqual({ status: "reset" });
+    });
+
+    it("400 のとき { status: 'failure', error } を返す", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(
+        jsonResponse({ status: "failure", error: "invalid_or_expired_token" }, false, 400),
+      );
+      const service = new HonoAuthService();
+
+      // Act
+      const result = await service.resetPassword("token-abc", "weak");
+
+      // Assert
+      expect(result).toEqual({ status: "failure", error: "invalid_or_expired_token" });
+    });
+  });
+
+  describe("verifyEmail", () => {
+    it("成功時に csrf_token を保持しつつ notify し { status: 'verified', user } を返す", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(
+        jsonResponse({ status: "verified", user: AUTH_USER, csrf_token: "csrf-verify" }),
+      );
+      const service = new HonoAuthService();
+      const callback = vi.fn();
+      service.onAuthStateChange(callback);
+
+      // Act
+      const result = await service.verifyEmail("token-signup");
+
+      // Assert
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token_hash: "token-signup" }),
+      });
+      expect(result).toEqual({ status: "verified", user: AUTH_USER });
+      expect(getCsrfToken()).toBe("csrf-verify");
+      expect(callback).toHaveBeenCalledWith(AUTH_USER);
+    });
+
+    it("400 のとき { status: 'failure', error } を返し notify しない", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(
+        jsonResponse({ status: "failure", error: "invalid_or_expired_token" }, false, 400),
+      );
+      const service = new HonoAuthService();
+      const callback = vi.fn();
+      service.onAuthStateChange(callback);
+
+      // Act
+      const result = await service.verifyEmail("token-signup");
+
+      // Assert
+      expect(result).toEqual({ status: "failure", error: "invalid_or_expired_token" });
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resendConfirmation", () => {
+    it("/api/auth/resend-confirmation を POST で呼ぶ", async () => {
+      // Arrange
+      mockApiFetch.mockResolvedValue(jsonResponse({ status: "sent" }));
+      const service = new HonoAuthService();
+
+      // Act
+      await service.resendConfirmation("user@example.com");
+
+      // Assert
+      expect(mockApiFetch).toHaveBeenCalledWith("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "user@example.com" }),
+      });
+    });
+  });
+
   describe("onAuthStateChange", () => {
     it("unsubscribe すると以降 notify されない", async () => {
       // Arrange

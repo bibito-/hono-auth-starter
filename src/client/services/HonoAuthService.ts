@@ -2,6 +2,8 @@ import { AuthError } from "@client/entities/AuthErrors";
 import { apiFetch } from "../lib/apiFetch";
 import type { AuthUser } from "../entities/AuthUser";
 import type { SigninResult } from "../entities/SigninResult";
+import type { ResetPasswordResult } from "../entities/ResetPasswordResult";
+import type { VerifyEmailResult } from "../entities/VerifyEmailResult";
 import type { AuthService } from "./AuthService";
 
 // apiFetch はプレーン関数で React の外（fetch 直前）から呼ばれるため、
@@ -22,6 +24,11 @@ type SignupResponseBody =
   | { status: "verified"; user: AuthUser; csrf_token: string }
   | { status: "pending" };
 type MeResponseBody = { user: AuthUser; csrf_token: string };
+type FailureBody = { status: "failure"; error: string };
+type ResetPasswordResponseBody = { status: "reset" } | FailureBody;
+type VerifyEmailResponseBody =
+  | { status: "verified"; user: AuthUser; csrf_token: string }
+  | FailureBody;
 
 /**
  * Hono 経由（/api/auth/*）で認証を管理するサービスクラス。
@@ -95,5 +102,56 @@ export class HonoAuthService implements AuthService {
         this.callbacks = this.callbacks.filter((cb) => cb !== callback);
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    await apiFetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(tokenHash: string, password: string): Promise<ResetPasswordResult> {
+    const res = await apiFetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_hash: tokenHash, password }),
+    });
+    const data = await res.json().catch(() => ({}) as Partial<ResetPasswordResponseBody>);
+    if (!res.ok) {
+      return {
+        status: "failure",
+        error: (data as Partial<FailureBody>).error ?? "パスワードの変更に失敗しました",
+      };
+    }
+    return { status: "reset" };
+  }
+
+  async verifyEmail(tokenHash: string): Promise<VerifyEmailResult> {
+    const res = await apiFetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_hash: tokenHash }),
+    });
+    const data = await res.json().catch(() => ({}) as Partial<VerifyEmailResponseBody>);
+    if (!res.ok) {
+      return {
+        status: "failure",
+        error: (data as Partial<FailureBody>).error ?? "確認に失敗しました",
+      };
+    }
+    const { user, csrf_token } = data as { user: AuthUser; csrf_token: string };
+    setCsrfToken(csrf_token);
+    this.notify(user);
+    return { status: "verified", user };
+  }
+
+  async resendConfirmation(email: string): Promise<void> {
+    await apiFetch("/api/auth/resend-confirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
   }
 }
