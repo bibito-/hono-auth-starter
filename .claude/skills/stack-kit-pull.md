@@ -79,6 +79,7 @@ git -C ../hono-auth-starter show "<base_sha>:<path>"
 その他の扱い:
 
 - hono-auth-starter 側にのみ存在（祖先に無い）→ hono-auth-starter で新規追加されたスタック層ファイル。取り込む
+- 祖先に無いが双方に存在し内容が異なる → 「hono-auth-starter の新規追加」と「プロジェクトの独自作成」を内容では区別できない。双方変更と同様に取り込まず、両側の追加コミット（`git log --diff-filter=A -1 -- <path>`）を添えて判断を仰ぐ
 - プロジェクト側にのみ存在 → スタック範囲外か未 push の変更。取り込み対象外として報告するのみ（削除しない）
 - 祖先を取得できない（base 未設定・force-push で消えた等）→ 方向判別できないため適用しない
 
