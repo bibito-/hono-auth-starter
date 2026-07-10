@@ -6,6 +6,7 @@
 .claude/rules/documentation-guide.md
 .claude/rules/grill-me.md
 .claude/skills/merge-gate.md
+.claude/docs/rules/documentation-guide.md
 .claude/docs/rules/terminology-rules.md
 .claude/skills/workflow-kit-push.md
 .claude/skills/workflow-kit-pull.md

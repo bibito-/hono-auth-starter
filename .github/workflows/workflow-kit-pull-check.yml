@@ -26,9 +26,13 @@ jobs:
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
+        with:
+          # conflict 報告に「このファイルを追加したコミット」を添えるため全履歴を取る
+          fetch-depth: 0
 
       - name: Clone claude-workflow-kit
-        run: git clone --depth 1 https://github.com/bibito-/claude-workflow-kit.git /tmp/claude-workflow-kit
+        # conflict 報告用に kit 側の追加コミット情報も引くため shallow にしない
+        run: git clone https://github.com/bibito-/claude-workflow-kit.git /tmp/claude-workflow-kit
 
       - name: Diff manifest files
         id: diff
@@ -43,11 +47,12 @@ jobs:
           base_sha=$(cat "$base_file" 2>/dev/null || echo "")
           echo "base SHA: ${base_sha:-none}"
 
-          # 共通祖先のブロブを読むために base コミットだけ取り寄せる。
-          # depth-1 クローンには履歴が無いが、GitHub は ref から到達可能な SHA の fetch を許す。
-          # 取れない場合（base 未設定・force-push で消えた等）は方向判別せず、安全側に倒す。
+          # 共通祖先のブロブを base コミットから読めることを確認する。
+          # 全履歴クローンなら通常 HEAD から到達可能だが、force-push で履歴から
+          # 消えた SHA は fetch で拾い直す。それでも取れない場合（base 未設定等）は
+          # 方向判別せず、安全側に倒す。
           ancestor_ok=0
-          if [ -n "$base_sha" ] && git -C "$KIT" fetch --depth=1 origin "$base_sha" -q 2>/dev/null; then
+          if [ -n "$base_sha" ] && { git -C "$KIT" cat-file -e "$base_sha^{commit}" 2>/dev/null || git -C "$KIT" fetch origin "$base_sha" -q 2>/dev/null; }; then
             ancestor_ok=1
           else
             echo "::notice::共通祖先 (${base_sha:-none}) を取得できません。差分のあるファイルは適用せず警告します"
@@ -57,7 +62,7 @@ jobs:
           #   same       … 差分なし
           #   kit        … kit だけが変更 → 取り込む
           #   local      … project だけが変更 → 取り込まない（push を促す）
-          #   conflict   … 双方が変更 → 適用せず報告する
+          #   conflict   … 双方が変更、または祖先に無い同名ファイルが双方に存在 → 適用せず報告する
           #   noancestor … 祖先不明 → 適用しない
           classify() {
             local p="$1" src="$KIT/$1"
@@ -66,7 +71,10 @@ jobs:
             if [ "$ancestor_ok" != "1" ]; then echo noancestor; return; fi
             local b=/tmp/base_blob
             if ! git -C "$KIT" show "$base_sha:$p" > "$b" 2>/dev/null; then
-              echo kit; return   # 祖先に無い = kit で新規追加された
+              # 祖先に無いが project 側にも存在し内容が違う。「kit の新規追加」と
+              # 「project が独自に作った同名ファイル」を内容だけでは区別できないため、
+              # kit と断定せず conflict に倒す（project 独自ファイルの上書きを防ぐ）。
+              echo conflict; return
             fi
             local kit_same=1 proj_same=1
             diff -q "$b" "$src" > /dev/null 2>&1 || kit_same=0
@@ -84,6 +92,14 @@ jobs:
           # 進めてしまうと共通祖先が kit と一致し、未取り込みのファイルが
           # 翌回から「project が先行」と誤分類されて永久に同期されなくなる。
           blocked=0
+
+          # 手動解決のとっかかりとして「そのファイルを追加したコミット」を返す。
+          # ファイル内の自己申告ではなく git 履歴から引くので維持コストも改竄もない。
+          added_info() {
+            local info
+            info=$(git -C "$1" log --diff-filter=A -1 --date=short --format='%h %ad %s' -- "$2" 2>/dev/null || true)
+            echo "${info:-追加コミット不明}"
+          }
 
           # 1ファイルを分類し、kit 方向のときだけ適用する。
           apply_one() {
@@ -110,11 +126,11 @@ jobs:
                 echo "::notice::${path} はこのリポジトリ側が先行しています。巻き戻さず据え置きました。/workflow-kit-push で kit へ反映してください"
                 ;;
               conflict)
-                echo "::warning::${path} は kit とこのリポジトリの双方が変更しています。自動では解決できません。手動で確認してください"
+                echo "::warning::${path} は kit とこのリポジトリで内容が異なり、方向を自動判別できません（双方の変更、または双方で独立に作成）。手動で確認してください。project側追加: $(added_info . "$path") / kit側追加: $(added_info "$KIT" "$path")"
                 blocked=1
                 ;;
               noancestor)
-                echo "::warning::${path} に差分がありますが共通祖先を取得できず方向を判別できません。適用しません"
+                echo "::warning::${path} に差分がありますが共通祖先を取得できず方向を判別できません。適用しません。project側追加: $(added_info . "$path") / kit側追加: $(added_info "$KIT" "$path")"
                 blocked=1
                 ;;
             esac
