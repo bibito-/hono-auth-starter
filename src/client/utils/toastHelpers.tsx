@@ -8,6 +8,10 @@ export const showErrorToast = (title: string, description?: string) => {
   });
 };
 
+export const showSuccessToast = (title: string, description?: string) => {
+  toast.success(title, { description });
+};
+
 export const showConflictToast = () => {
   toast.warning("データが更新されています", {
     description: "他の端末またはタブで変更がありました。最新の状態を読み込みました。",

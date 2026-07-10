@@ -2,16 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockToastWarning = vi.fn();
 const mockToastDismiss = vi.fn();
+const mockToastSuccess = vi.fn();
 
 vi.mock("sonner", () => ({
   toast: {
     warning: mockToastWarning,
     dismiss: mockToastDismiss,
+    success: mockToastSuccess,
   },
 }));
 
 // モック確定後に import する
-const { showRateLimitToast, formatRetryAfter } = await import("./toastHelpers");
+const { showRateLimitToast, formatRetryAfter, showSuccessToast } = await import("./toastHelpers");
 
 describe("formatRetryAfter", () => {
   it("時間と分があるとき「約X時間Y分」を返す", () => {
@@ -45,6 +47,22 @@ describe("formatRetryAfter", () => {
 
     // Assert
     expect(result).toBe("約2分");
+  });
+});
+
+describe("showSuccessToast", () => {
+  beforeEach(() => {
+    mockToastSuccess.mockClear();
+  });
+
+  it("title と description で toast.success を呼ぶ", () => {
+    // Act
+    showSuccessToast("確認メールを再送信しました");
+
+    // Assert
+    expect(mockToastSuccess).toHaveBeenCalledWith("確認メールを再送信しました", {
+      description: undefined,
+    });
   });
 });
 
