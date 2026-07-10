@@ -163,7 +163,7 @@ gh pr create --title "..." --body "..." --base main
 1. **spec を docs/ へ昇格**
    - `.claude/specs/<機能名>/` のファイルを `.claude/docs/features/<グループ>/<機能名>-doc-01.md` へ移動
    - 移動後、`.claude/specs/<機能名>/` ディレクトリを削除
-   - 命名・配置ルールは [documentation-guide.md](../rules/documentation-guide.md) を参照
+   - 命名・配置ルールは [documentation-guide.md](../docs/rules/documentation-guide.md) を参照
 
 2. **steering を更新**
    - `current.md`: 進行中タスクのゴール・フェーズ・次のステップを削除し「進行中タスク: なし」状態に戻す

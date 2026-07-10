@@ -3,6 +3,7 @@
 | ドキュメント | 役割 |
 |---|---|
 | agents-sdk-rules | Agents SDK（`Agent`クラス）実装時のルール（機微な値をinstance nameに使う場合のsendIdentityOnConnect無効化） |
+| documentation-guide | 仕様書・設計ドキュメントの書き方・配置・INDEX.md 運用・修正履歴の記録ルール |
 | error-logging-rules | サーバーハンドラー・ミドルウェアのcatchブロックでのログ出力ルール（生エラーオブジェクトの出力禁止） |
 | local-dev-rules | ローカル動作確認時のコマンド（dev:cfw / dev:spa）の使い分け |
 | react-rules | Reactコンポーネント・hooks実装時のルール（use()の使用等） |
