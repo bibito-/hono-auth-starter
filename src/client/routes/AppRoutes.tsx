@@ -1,4 +1,7 @@
+import ConfirmEmail from "@client/components/features/auth/ConfirmEmail";
+import ForgotPassword from "@client/components/features/auth/ForgotPassword";
 import LoginWithEmail from "@client/components/features/auth/LoginWithEmail";
+import ResetPassword from "@client/components/features/auth/ResetPassword";
 import SignUp from "@client/components/features/auth/SignUp";
 import ContentPage from "@client/components/pages/ContentPage";
 import NotFoundPage from "@client/components/pages/NotFoundPage";
@@ -26,6 +29,9 @@ const AppRoutes = () => {
       </Route>
       <Route path="/login" element={<LoginWithEmail />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
+      <Route path="/auth/confirm" element={<ConfirmEmail />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

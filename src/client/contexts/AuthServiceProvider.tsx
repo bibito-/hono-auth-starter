@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { use, useEffect, useState } from "react";
 import type { AuthUser } from "../entities/AuthUser";
 import type { AuthService } from "../services/AuthService";
-import { showErrorToast } from "../utils/toastHelpers";
+import { showErrorToast, showSuccessToast } from "../utils/toastHelpers";
 import { AuthContext } from "./AuthContext";
 import { AuthErrorContext } from "./AuthErrorContext";
 import { AuthError } from "@client/entities/AuthErrors";
@@ -98,6 +98,42 @@ const AuthServiceProvider = ({ children, authService }: Props) => {
     onSuccess: () => setAuthUser(null),
   });
 
+  // アプリケーションレベルの成功（サーバーは常に200を返す設計）は各ページが「送信しました」
+  // 表示へ切り替えるため onSuccess で Toast は呼ばない。一方 apiFetch 自体が reject する
+  // 真の通信例外（オフライン等）はページ側の isSuccess が立たず画面が変わらないため、
+  // onError で Toast を出す（ux-feedback-policy.md の集約方針）
+  const forgotPasswordMutation = useMutation({
+    mutationFn: ({ email }: { email: string }) => authService.forgotPassword(email),
+    onError: (error: Error) =>
+      showErrorToast("パスワード再設定メールの送信に失敗しました", error.message),
+  });
+
+  // 成功・失敗いずれもページ側が表示を切り替えるため onSuccess で Toast は呼ばない。
+  // 通信例外時は画面が変わらないため onError で Toast を出す
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ tokenHash, password }: { tokenHash: string; password: string }) =>
+      authService.resetPassword(tokenHash, password),
+    onError: (error: Error) => showErrorToast("パスワードの変更に失敗しました", error.message),
+  });
+
+  // verified 時は login と同様にそのままログイン状態にする。通信例外時は画面が変わらない
+  // （ConfirmEmail 側で isError を見て確認中 Spinner から抜ける）ため onError で Toast を出す
+  const verifyEmailMutation = useMutation({
+    mutationFn: ({ tokenHash }: { tokenHash: string }) => authService.verifyEmail(tokenHash),
+    onSuccess: (result) => {
+      if (result.status === "verified") setAuthUser(result.user);
+    },
+    onError: (error: Error) => showErrorToast("メールアドレスの確認に失敗しました", error.message),
+  });
+
+  // EmailConfirmationNotice・ConfirmEmail いずれも画面遷移を伴わない同一画面上の操作のため、
+  // 成功・失敗どちらも Toast で通知する（ux-feedback-policy.md の集約方針）
+  const resendConfirmationMutation = useMutation({
+    mutationFn: ({ email }: { email: string }) => authService.resendConfirmation(email),
+    onSuccess: () => showSuccessToast("確認メールを再送信しました"),
+    onError: (error: Error) => showErrorToast("確認メールの再送信に失敗しました", error.message),
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -107,6 +143,10 @@ const AuthServiceProvider = ({ children, authService }: Props) => {
         loginMutation,
         signinMutation,
         logoutMutation,
+        forgotPasswordMutation,
+        resetPasswordMutation,
+        verifyEmailMutation,
+        resendConfirmationMutation,
       }}
     >
       {children}

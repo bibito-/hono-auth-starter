@@ -20,6 +20,10 @@ function renderWithAuth(authValue: Partial<AuthServiceType>) {
     loginMutation: {} as AuthServiceType["loginMutation"],
     signinMutation: {} as AuthServiceType["signinMutation"],
     logoutMutation: { mutate: mockLogoutMutate } as unknown as AuthServiceType["logoutMutation"],
+    forgotPasswordMutation: {} as AuthServiceType["forgotPasswordMutation"],
+    resetPasswordMutation: {} as AuthServiceType["resetPasswordMutation"],
+    verifyEmailMutation: {} as AuthServiceType["verifyEmailMutation"],
+    resendConfirmationMutation: {} as AuthServiceType["resendConfirmationMutation"],
     ...authValue,
   };
 

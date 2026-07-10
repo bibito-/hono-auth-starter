@@ -62,6 +62,10 @@ function createApp() {
   app.post("/api/auth/refresh", (c) => c.json({ ok: "refresh" }));
   app.post("/api/auth/logout", (c) => c.json({ ok: "logout" }));
   app.get("/api/auth/me", (c) => c.json({ ok: "me" }));
+  app.post("/api/auth/forgot-password", (c) => c.json({ ok: "forgot-password" }));
+  app.post("/api/auth/reset-password", (c) => c.json({ ok: "reset-password" }));
+  app.post("/api/auth/verify-email", (c) => c.json({ ok: "verify-email" }));
+  app.post("/api/auth/resend-confirmation", (c) => c.json({ ok: "resend-confirmation" }));
   app.get("/api/users", (c) => c.json({ ok: "list" }));
   app.patch("/api/users/:id", (c) => c.json({ ok: "update" }));
   return app;
@@ -163,6 +167,22 @@ describe("authGuard", () => {
     // Assert
     expect(res.status).toBe(401);
   });
+
+  it.each([
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/verify-email",
+    "/api/auth/resend-confirmation",
+  ])("正常系: %s は access_token Cookie がなくても通す（認証対象外）", async (path) => {
+    // 準備
+    const app = createApp();
+
+    // Act
+    const res = await app.request(path, { method: "POST" }, env);
+
+    // Assert
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("csrfGuard", () => {
@@ -253,5 +273,21 @@ describe("csrfGuard", () => {
 
     // Assert
     expect(res.status).toBe(403);
+  });
+
+  it.each([
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/verify-email",
+    "/api/auth/resend-confirmation",
+  ])("正常系: %s（POST）は CSRF 検証対象外", async (path) => {
+    // 準備
+    const app = createApp();
+
+    // Act
+    const res = await app.request(path, { method: "POST" }, env);
+
+    // Assert
+    expect(res.status).toBe(200);
   });
 });

@@ -2,6 +2,8 @@ import { AuthError } from "@client/entities/AuthErrors";
 import type { AuthUser } from "../entities/AuthUser";
 import type { AuthService } from "./AuthService";
 import type { SigninResult } from "../entities/SigninResult";
+import type { ResetPasswordResult } from "../entities/ResetPasswordResult";
+import type { VerifyEmailResult } from "../entities/VerifyEmailResult";
 
 const MOCK_USER: AuthUser = {
   id: "mock-user-id",
@@ -45,6 +47,25 @@ export class MockAuthService implements AuthService {
         this.callbacks = this.callbacks.filter((cb) => cb !== callback);
       },
     };
+  }
+
+  async forgotPassword(_email: string): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  async resetPassword(_tokenHash: string, _password: string): Promise<ResetPasswordResult> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return { status: "reset" };
+  }
+
+  async verifyEmail(_tokenHash: string): Promise<VerifyEmailResult> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    this.notify(MOCK_USER);
+    return { status: "verified", user: MOCK_USER };
+  }
+
+  async resendConfirmation(_email: string): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 

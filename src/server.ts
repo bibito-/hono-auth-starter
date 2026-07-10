@@ -11,6 +11,10 @@ import { signupHandler } from "./server/handlers/auth/signup";
 import { refreshHandler } from "./server/handlers/auth/refresh";
 import { logoutHandler } from "./server/handlers/auth/logout";
 import { meHandler } from "./server/handlers/auth/me";
+import { forgotPasswordHandler } from "./server/handlers/auth/forgotPassword";
+import { resetPasswordHandler } from "./server/handlers/auth/resetPassword";
+import { verifyEmailHandler } from "./server/handlers/auth/verifyEmail";
+import { resendConfirmationHandler } from "./server/handlers/auth/resendConfirmation";
 import type { HonoVariables } from "@shared/types/hono";
 import { RateLimiter } from "./server/rate-limit/RateLimiter";
 
@@ -42,6 +46,13 @@ app.post("/api/auth/signup", signupHandler);
 app.post("/api/auth/refresh", refreshHandler);
 app.post("/api/auth/logout", logoutHandler);
 app.get("/api/auth/me", meHandler);
+// パスワードリセット・メールアドレス確認（auth-email-flows）。
+// 4つとも呼ばれる時点で access_token も csrf_secret も存在しないため、
+// AUTH_EXEMPT_PATHS・CSRF_EXEMPT_PATHS（routeGuards.ts）の両方で除外している。
+app.post("/api/auth/forgot-password", forgotPasswordHandler);
+app.post("/api/auth/reset-password", resetPasswordHandler);
+app.post("/api/auth/verify-email", verifyEmailHandler);
+app.post("/api/auth/resend-confirmation", resendConfirmationHandler);
 
 // ユーザー管理ルートは authMiddleware の後段でサーバーサイド RBAC を課す。
 // 一括 use ではなく per-route で requireRole を付け、操作ごとに必要ロールを宣言する。
