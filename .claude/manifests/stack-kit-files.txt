@@ -2,6 +2,7 @@
 .claude/agents/client-review-agent.md
 .claude/agents/server-impl-agent.md
 .claude/agents/server-review-agent.md
+.claude/agents/tsc-agent.md
 .claude/rules/agent-delegation.md
 .claude/docs/rules/react-rules.md
 .claude/docs/rules/supabase-auth-rules.md
