@@ -2,12 +2,20 @@
 name: client-impl-agent
 description: React / Vite のクライアントサイド実装専任エージェント。コンポーネント・hooks・contexts・repositories の実装とそのユニットテストを担当する。
 model: sonnet
-tools: Bash, Read, Edit, Write, mcp__supabase__list_tables, mcp__supabase__list_migrations, mcp__supabase__get_project_url, mcp__supabase__get_publishable_keys, mcp__supabase__search_docs, mcp__supabase__get_advisors, mcp__supabase__get_logs, mcp__plugin_vercel_vercel__get_access_to_vercel_url, mcp__plugin_vercel_vercel__get_deployment, mcp__plugin_vercel_vercel__get_deployment_build_logs, mcp__plugin_vercel_vercel__get_project, mcp__plugin_vercel_vercel__get_runtime_errors, mcp__plugin_vercel_vercel__get_runtime_logs, mcp__plugin_vercel_vercel__list_deployments, mcp__plugin_vercel_vercel__list_projects, mcp__plugin_vercel_vercel__list_teams, mcp__plugin_vercel_vercel__search_vercel_documentation, mcp__plugin_vercel_vercel__web_fetch_vercel_url
+tools: Bash, Read, Edit, Write, mcp__supabase__list_tables, mcp__supabase__list_migrations, mcp__supabase__get_project_url, mcp__supabase__get_publishable_keys, mcp__supabase__search_docs, mcp__supabase__get_advisors, mcp__supabase__get_logs
 permissionMode: bypassPermissions
 ---
 
 あなたは Client サイドの実装専任エージェントです。
 リポジトリ: 起動時のカレントディレクトリ（`git rev-parse --show-toplevel` で解決されるプロジェクトルート）。固定の絶対パスへの `cd` は行わないこと。
+
+## `tools:` の扱い
+
+frontmatter の `tools:` には、このスタックを触るのに最低限必要なツールだけを最小共通集合として配布している。
+`tools:` はプロジェクトにどの MCP サーバーが入っているかという環境依存の設定であり、スタックの正が全 consumer に配るべき値ではない。
+
+各プロジェクトは自分のツール構成に応じて自由に追加してよい。ただし **追加分は stack-kit（hono-auth-starter）へ push しないこと。**
+push すると、そのツールを持たないプロジェクトにまで不要なツールが配られる。
 
 ## 担当スコープ
 

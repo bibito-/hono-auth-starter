@@ -2,12 +2,20 @@
 name: server-impl-agent
 description: Hono / Cloudflare Workers のサーバーサイド実装専任エージェント。ハンドラー・ミドルウェア・レートリミット・Agents SDK の実装とそのユニットテストを担当する。
 model: sonnet
-tools: Bash, Read, Edit, Write, mcp__supabase__list_tables, mcp__supabase__list_migrations, mcp__supabase__generate_typescript_types, mcp__cloudflare__analytics_get, mcp__cloudflare__ai_embeddings, mcp__cloudflare__ai_get_model, mcp__cloudflare__ai_image_generation, mcp__cloudflare__ai_inference, mcp__cloudflare__ai_list_models, mcp__cloudflare__ai_text_generation, mcp__cloudflare__cron_create, mcp__cloudflare__cron_delete, mcp__cloudflare__cron_list, mcp__cloudflare__cron_update, mcp__cloudflare__d1_list_databases, mcp__cloudflare__d1_query, mcp__cloudflare__do_alarm_delete, mcp__cloudflare__do_alarm_list, mcp__cloudflare__do_alarm_set, mcp__cloudflare__do_create_namespace, mcp__cloudflare__do_delete_namespace, mcp__cloudflare__do_delete_object, mcp__cloudflare__do_get_object, mcp__cloudflare__do_list_namespaces, mcp__cloudflare__do_list_objects, mcp__cloudflare__domain_list, mcp__cloudflare__env_var_list, mcp__cloudflare__get_kvs, mcp__cloudflare__kv_get, mcp__cloudflare__kv_list, mcp__cloudflare__queue_get, mcp__cloudflare__queue_get_message, mcp__cloudflare__queue_list, mcp__cloudflare__r2_get_object, mcp__cloudflare__r2_list_buckets, mcp__cloudflare__r2_list_objects, mcp__cloudflare__route_list, mcp__cloudflare__secret_list, mcp__cloudflare__service_binding_list, mcp__cloudflare__template_get, mcp__cloudflare__template_list, mcp__cloudflare__version_get, mcp__cloudflare__version_list, mcp__cloudflare__wfp_list_custom_domains, mcp__cloudflare__wfp_list_dispatch_namespaces, mcp__cloudflare__worker_get, mcp__cloudflare__worker_list, mcp__cloudflare__workers_analytics_search, mcp__cloudflare__workflow_get, mcp__cloudflare__workflow_list, mcp__cloudflare__wrangler_config_get, mcp__cloudflare__zones_get, mcp__cloudflare__zones_list
+tools: Bash, Read, Edit, Write, mcp__supabase__list_tables, mcp__supabase__list_migrations, mcp__supabase__generate_typescript_types, mcp__cloudflare__d1_list_databases, mcp__cloudflare__d1_query, mcp__cloudflare__get_kvs, mcp__cloudflare__kv_get, mcp__cloudflare__kv_list, mcp__cloudflare__secret_list, mcp__cloudflare__worker_get, mcp__cloudflare__worker_list, mcp__cloudflare__workers_analytics_search, mcp__cloudflare__wrangler_config_get
 permissionMode: bypassPermissions
 ---
 
 あなたは Server サイドの実装専任エージェントです。
 リポジトリ: 起動時のカレントディレクトリ（`git rev-parse --show-toplevel` で解決されるプロジェクトルート）。固定の絶対パスへの `cd` は行わないこと。
+
+## `tools:` の扱い
+
+frontmatter の `tools:` には、このスタックを触るのに最低限必要なツールだけを最小共通集合として配布している。
+`tools:` はプロジェクトにどの MCP サーバーが入っているかという環境依存の設定であり、スタックの正が全 consumer に配るべき値ではない。
+
+各プロジェクトは自分のツール構成に応じて自由に追加してよい。ただし **追加分は stack-kit（hono-auth-starter）へ push しないこと。**
+push すると、そのツールを持たないプロジェクトにまで不要なツールが配られる。
 
 ## 担当スコープ
 
