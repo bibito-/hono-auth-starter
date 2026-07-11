@@ -56,8 +56,13 @@ diff ../claude-workflow-kit/.claude/manifests/workflow-kit-files.txt .claude/man
 
 更新後のマニフェストに列挙された各ファイルについて、kit 側と現在のプロジェクト側を比較する。
 
+> **`<path>` はマニフェストの行そのもの**（リポジトリルート相対。`.claude/hooks/guard-rm-rf.js` のように
+> 既に `.claude/` を含む）。kit 側も同じ構成のため、`../claude-workflow-kit/<path>` と連結する。
+> `../claude-workflow-kit/.claude/<path>` と書くと `.claude/` が二重になる。また core には
+> `.github/workflows/workflow-kit-pull-check.yml` も含まれ、これは `.claude/` 配下ではない。
+
 ```bash
-diff ../claude-workflow-kit/.claude/<path> .claude/<path>
+diff ../claude-workflow-kit/<path> <path>
 ```
 
 `diff` は差の有無しか返さず、kit とプロジェクトのどちらが新しいかを判別できない。単純に kit で上書きすると、プロジェクト側が先行しているファイルを巻き戻す。
@@ -90,7 +95,7 @@ git -C ../claude-workflow-kit show "<base_sha>:<path>"
 ### Step 5: 承認されたファイルをローカルに適用する
 
 ```bash
-cp ../claude-workflow-kit/.claude/<path> .claude/<path>
+cp ../claude-workflow-kit/<path> <path>
 ```
 
 まだコミットはしない。

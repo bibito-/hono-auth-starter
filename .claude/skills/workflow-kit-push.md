@@ -93,10 +93,15 @@ base_sha=$(cat .claude/manifests/workflow-kit-base.txt 2>/dev/null || echo "")
 
 ### Step 4: 変更ファイルをコピーする
 
-コピー元プロジェクトの該当ファイルを、claude-workflow-kit 側の同一パスへ上書きコピーする（ディレクトリ構成は `.claude/...` で共通）。
+コピー元プロジェクトの該当ファイルを、claude-workflow-kit 側の同一パスへ上書きコピーする。
+
+> **`<path>` はマニフェストの行そのもの**（リポジトリルート相対。`.claude/hooks/guard-rm-rf.js` のように
+> 既に `.claude/` を含む）。kit 側も同じ構成のため、そのまま連結する。
+> `../claude-workflow-kit/.claude/<path>` と書くと `.claude/` が二重になる。また core には
+> `.github/workflows/workflow-kit-pull-check.yml` も含まれ、これは `.claude/` 配下ではない。
 
 ```bash
-cp <元プロジェクト>/.claude/<path> ../claude-workflow-kit/.claude/<path>
+cp <path> ../claude-workflow-kit/<path>
 ```
 
 ### Step 5: プロジェクト固有の内容が紛れていないか確認する
