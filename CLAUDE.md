@@ -82,12 +82,13 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 初期セットアップ手順は [README.md](README.md) と同じ内容・同じ順序にすること（乖離させない）。
 
 1. プロジェクト名を変更: `package.json` の `name`・`scripts.deploy` 内の `dist/hono_auth_starter/` パス（`name` をハイフン→アンダースコア変換した文字列）・`wrangler.jsonc` の `name`・`index.html` の `<title>`・`src/client/main.tsx` の `ThemeProvider` `storageKey`・`src/client/components/layout/Header.tsx` のブランドタイトル文字列・**README.md 自身の見出し/本文中の自己言及**
-2. 新規 Supabase プロジェクトを作成し、`profiles`（+ RLS ポリシー）・`event_logs` テーブルを作成するマイグレーションを用意（[.claude/docs/migrations/user-management-design_1.md](.claude/docs/migrations/user-management-design_1.md) 参照。role 種別は業務要件に合わせて再定義すること）。その後 `.claude/skills/extract-template.md` Step6 を参照し、profiles/event_logs 用の権限・RLS マイグレーションを適用
-3. Vercel でプロジェクトを新規作成し、対象 GitHub リポジトリと連携する（Framework Preset は Vite 自動検出のまま、Build/Output Directory も上書き不要）
-4. 環境変数を設定する。`.dev.vars`（Cloudflare Workers ローカル開発用）に `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` を、クライアント側（Vercel 環境変数）に `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_API_BASE_URL` を設定。本番 Cloudflare Worker には `wrangler secret put` でユーザー自身が別途シークレットを登録する必要がある（未登録だと認証必須の全エンドポイントが 401 になる）
-5. `src/server/cors.ts` の `ALLOWED_ORIGINS`（現状 TODO プレースホルダー）に、Step 3 で確定した本番 URL を追記
-6. コンテンツ機能を実装: `src/client/contexts/ContentRepositoryContext.tsx` の型・`src/client/components/pages/ContentPage.tsx` を実際のコンテンツに差し替え、必要な API を `src/server.ts` に追加
-7. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
+2. stack-kit の同期ループに結線する（必須）。複製したプロジェクトのルートで `../hono-auth-starter/scripts/stack-kit-scaffold.sh` を実行し、レポートに出る手動作業2件（`STACK_KIT_PAT` の登録・`.claude/settings.json` へのフック登録）を済ませる。`.claude/manifests/stack-kit-base.txt` と Secrets は template 複製で届かないため、これを飛ばすと初回 CI が `noancestor` で固まる
+3. 新規 Supabase プロジェクトを作成し、`profiles`（+ RLS ポリシー）・`event_logs` テーブルを作成するマイグレーションを用意（[.claude/docs/migrations/user-management-design_1.md](.claude/docs/migrations/user-management-design_1.md) 参照。role 種別は業務要件に合わせて再定義すること）。その後 `.claude/skills/extract-template.md` Step6 を参照し、profiles/event_logs 用の権限・RLS マイグレーションを適用
+4. Vercel でプロジェクトを新規作成し、対象 GitHub リポジトリと連携する（Framework Preset は Vite 自動検出のまま、Build/Output Directory も上書き不要）
+5. 環境変数を設定する。`.dev.vars`（Cloudflare Workers ローカル開発用）に `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` を、クライアント側（Vercel 環境変数）に `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_API_BASE_URL` を設定。本番 Cloudflare Worker には `wrangler secret put` でユーザー自身が別途シークレットを登録する必要がある（未登録だと認証必須の全エンドポイントが 401 になる）
+6. `src/server/cors.ts` の `ALLOWED_ORIGINS`（現状 TODO プレースホルダー）に、Step 4 で確定した本番 URL を追記
+7. コンテンツ機能を実装: `src/client/contexts/ContentRepositoryContext.tsx` の型・`src/client/components/pages/ContentPage.tsx` を実際のコンテンツに差し替え、必要な API を `src/server.ts` に追加
+8. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
 
 **本番デプロイ前に確認すべきこと（Agents SDK の instance name 露出）:** `agents` パッケージの `Agent` クラスは既定で `sendIdentityOnConnect: true` であり、`idFromName`/`getAgentByName` に渡したインスタンス名をクライアント接続時に `{ type: "cf_agent_identity", name, agent }` メッセージとして自動送信する。`user_id` 等の機微な値をインスタンス名に使う Agent クラス（例: コンテンツ機能実装時に追加する per-user 通知用 DO）を作成した場合、本番デプロイ前に該当クラスへ `static options = { sendIdentityOnConnect: false }` を追加すること。詳細は [.claude/docs/rules/agents-sdk-rules.md](.claude/docs/rules/agents-sdk-rules.md) 参照。clone直後〜launchまでの開発中は既定値（true）のままで問題ない。
 
