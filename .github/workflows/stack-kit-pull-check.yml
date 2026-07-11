@@ -140,7 +140,7 @@ jobs:
                 blocked=1
                 ;;
               noancestor)
-                echo "::warning::${path} に差分がありますが共通祖先を取得できず方向を判別できません。適用しません。project側追加: $(added_info . "$path") / kit側追加: $(added_info "$KIT" "$path")"
+                echo "::warning::${path} に差分がありますが共通祖先を取得できず方向を判別できません。適用しません。base が未設定なら \`../hono-auth-starter/scripts/stack-kit-scaffold.sh\` を実行して同期ループに結線してください。project側追加: $(added_info . "$path") / kit側追加: $(added_info "$KIT" "$path")"
                 blocked=1
                 ;;
             esac

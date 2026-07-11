@@ -14,7 +14,12 @@
 .claude/docs/rules/local-dev-rules.md
 .claude/docs/rules/agents-sdk-rules.md
 .claude/docs/rules/error-logging-rules.md
+.claude/skills/tdd-workflow.md
+.claude/skills/pnpm-setup.md
 .claude/skills/stack-kit-push.md
 .claude/skills/stack-kit-pull.md
+.claude/commands/tdd.md
+.claude/commands/stack-kit-pull.md
+.claude/commands/stack-kit-push.md
 .claude/manifests/stack-kit-files.txt
 .github/workflows/stack-kit-pull-check.yml

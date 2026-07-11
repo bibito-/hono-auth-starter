@@ -2,15 +2,16 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type { HonoVariables } from "@shared/types/hono";
-import { corsMiddleware, ALLOWED_ORIGINS } from "./server/cors";
+import { corsMiddleware, LOCAL_ORIGINS } from "./server/cors";
 import { authGuard, csrfGuard } from "./server/middleware/routeGuards";
 import { bodySizeLimitMiddleware } from "./server/middleware/bodySize";
 
 // 実 server.ts は RateLimiter 経由で `cloudflare:` を import するため node の
 // ESM ローダーで読めない。auth.test.ts と同様に、server.ts の `/api/*` 配線
 // （bodySize → cors → authGuard → csrfGuard の順）を最小アプリで再現して検証する。
-const ALLOWED_ORIGIN = ALLOWED_ORIGINS[0];
+const ALLOWED_ORIGIN = LOCAL_ORIGINS[0];
 const DISALLOWED_ORIGIN = "https://evil.example.com";
+const DUMMY_PROD_ORIGIN = "https://test-prod.example.com";
 
 function createApp() {
   const app = new Hono<{
@@ -102,14 +103,73 @@ describe("CORS (/api/*)", () => {
     // 準備
     const app = createApp();
 
-    // Act / Assert: ALLOWED_ORIGINS の各オリジンが ACAO に反射されること
-    for (const origin of ALLOWED_ORIGINS) {
+    // Act / Assert: LOCAL_ORIGINS の各オリジンが ACAO に反射されること
+    for (const origin of LOCAL_ORIGINS) {
       const res = await app.request("/api/users", {
         method: "OPTIONS",
         headers: { Origin: origin, "Access-Control-Request-Method": "GET" },
       });
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe(origin);
     }
+  });
+
+  it("PROD_VERCEL_ORIGIN が c.env に設定されている場合、そのオリジンを反射する", async () => {
+    // 準備: 最小アプリを組み立てる
+    const app = createApp();
+
+    // Act: PROD_VERCEL_ORIGIN をダミー本番オリジンで設定した env でプリフライト
+    const res = await app.request(
+      "/api/users",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: DUMMY_PROD_ORIGIN,
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      { PROD_VERCEL_ORIGIN: DUMMY_PROD_ORIGIN } as unknown as CloudflareBindings,
+    );
+
+    // Assert: ACAO にダミー本番オリジンが反射される
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(DUMMY_PROD_ORIGIN);
+  });
+
+  it("PROD_VERCEL_ORIGIN が c.env に未設定（空文字列）の場合、本番オリジンを反射しない", async () => {
+    // 準備: 最小アプリを組み立てる
+    const app = createApp();
+
+    // Act: PROD_VERCEL_ORIGIN を空文字列（未設定相当）にした env でプリフライト
+    const res = await app.request(
+      "/api/users",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: DUMMY_PROD_ORIGIN,
+          "Access-Control-Request-Method": "GET",
+        },
+      },
+      { PROD_VERCEL_ORIGIN: "" } as unknown as CloudflareBindings,
+    );
+
+    // Assert: ACAO が付与されない（拒否）
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("PREVIEW_ORIGIN_PATTERN が null の既定設定では、vercel.app オリジンも許可しない", async () => {
+    // 準備: 最小アプリを組み立てる
+    const app = createApp();
+
+    // Act: Vercel プレビュー URL 風のオリジンからのプリフライト
+    const res = await app.request("/api/users", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://hono-auth-starter-abc123-some-team.vercel.app",
+        "Access-Control-Request-Method": "GET",
+      },
+    });
+
+    // Assert: PREVIEW_ORIGIN_PATTERN が null（既定）なので ACAO は付与されない
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
   it("非許可オリジンのプリフライトには ACAO を返さない", async () => {
