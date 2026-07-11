@@ -14,6 +14,11 @@
   // SPA は Vercel でホストする前提。run_worker_first:true で全リクエストをまず Worker へ通し、
   // Hono が /api/* 以外を 404 する＝Worker は SPA(index.html) を配信しない。
   "assets": { "run_worker_first": true },
+  "vars": {
+    // TODO: 本番デプロイ先のオリジンに差し替える（例: https://example.vercel.app）。
+    // 未設定でも動作するが、本番からの実リクエストは弾かれる。
+    "PROD_VERCEL_ORIGIN": ""
+  },
   "durable_objects": {
     "bindings": [{ "name": "RateLimiter", "class_name": "RateLimiter" }]
   },
