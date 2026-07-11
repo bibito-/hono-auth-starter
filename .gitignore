@@ -17,6 +17,9 @@ node_modules/
 .wrangler
 .vitest-cache
 
+# generated (pnpm cf-typegen で再生成)
+worker-configuration.d.ts
+
 # supabase local cache (may contain connection info)
 supabase/.branches
 supabase/.temp

@@ -75,6 +75,7 @@ VITE_API_BASE_URL=
 
 ```
 □ pnpm install が通る（Ignored build scripts 警告が出ないこと）
+□ pnpm cf-typegen で worker-configuration.d.ts が生成され、pnpm tsc --noEmit が通る
 □ wrangler dev でサーバーが起動する
 □ 未認証リクエストが 401 になる
 □ 有効ユーザートークンで 200 が返る
@@ -92,10 +93,13 @@ VITE_API_BASE_URL=
 
 ```
 pnpm install
+pnpm cf-typegen   # worker-configuration.d.ts（Workers の型定義）を生成
 pnpm dev:cfw   # Cloudflare Workers (API) を5173番で起動
 pnpm dev:spa   # Vercel向けSPAビルド確認を5174番で起動
 pnpm test      # vitest
 ```
+
+`worker-configuration.d.ts` は `wrangler types` の生成物（gitignore 済み）で、`tsconfig.json` が参照しているため型チェックに必須。`wrangler types` は `.dev.vars` の変数（`SUPABASE_URL` 等）も型に取り込むため、**`.dev.vars` を作成してから** `pnpm cf-typegen` を実行すること（`.dev.vars` が無い状態で生成すると `CloudflareBindings` から vars が欠落し型エラーになる）。`wrangler.jsonc` のバインディング変更時も再実行が必要。
 
 **devcontainer:** 本テンプレートは devcontainer 設定を含まない。ai-todo 由来の開発環境は兄弟プロジェクトを束ねる親ディレクトリの共有 devcontainer（SSH鍵の bind mount に `${localEnv:USERPROFILE}` を使用）に依拠しており、これは Windows/WSL 前提で macOS では動作しない。macOS で単体プロジェクトとして開発する場合は、`${localEnv:HOME}` ベースの `.devcontainer/` を別途用意すること。
 
