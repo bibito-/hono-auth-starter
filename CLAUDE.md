@@ -86,7 +86,7 @@ pnpm v11 を使用。ビルドスクリプトの許可設定は [`.claude/skills
 3. 新規 Supabase プロジェクトを作成し、`profiles`（+ RLS ポリシー）・`event_logs` テーブルを作成するマイグレーションを用意（[.claude/docs/migrations/user-management-design_1.md](.claude/docs/migrations/user-management-design_1.md) 参照。role 種別は業務要件に合わせて再定義すること）。その後 `.claude/skills/extract-template.md` Step6 を参照し、profiles/event_logs 用の権限・RLS マイグレーションを適用
 4. Vercel でプロジェクトを新規作成し、対象 GitHub リポジトリと連携する（Framework Preset は Vite 自動検出のまま、Build/Output Directory も上書き不要）
 5. 環境変数を設定する。`.dev.vars`（Cloudflare Workers ローカル開発用）に `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` を、クライアント側（Vercel 環境変数）に `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_API_BASE_URL` を設定。本番 Cloudflare Worker には `wrangler secret put` でユーザー自身が別途シークレットを登録する必要がある（未登録だと認証必須の全エンドポイントが 401 になる）
-6. `src/server/cors.ts` の `ALLOWED_ORIGINS`（現状 TODO プレースホルダー）に、Step 4 で確定した本番 URL を追記
+6. CORS の許可オリジンを設定する。`wrangler.jsonc` の `vars.PROD_VERCEL_ORIGIN`（現状 `""` のプレースホルダー）に Step 4 で確定した本番オリジンを設定し、`pnpm cf-typegen` を再実行する。プレビューデプロイからも API を叩くなら `src/server/cors.ts` の `PREVIEW_ORIGIN_PATTERN`（既定 `null`）を自分の Vercel team slug で絞った正規表現に差し替える。`LOCAL_ORIGINS` は差し替え不要
 7. コンテンツ機能を実装: `src/client/contexts/ContentRepositoryContext.tsx` の型・`src/client/components/pages/ContentPage.tsx` を実際のコンテンツに差し替え、必要な API を `src/server.ts` に追加
 8. サインアップ後、Supabase ダッシュボードで最初のユーザーの `profiles.role` を `admin` に手動更新
 

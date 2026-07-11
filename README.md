@@ -71,9 +71,13 @@ VITE_API_BASE_URL=
 
 本番 Cloudflare Worker には `.dev.vars` の値は反映されない。`wrangler secret put SUPABASE_URL` 等でユーザー自身が本番シークレットを別途登録する必要がある（未登録の場合、JWKS 取得に失敗し認証必須の全エンドポイントが 401 になる）。シークレットの登録操作自体は各サービスのダッシュボード/CLIで行うこと。
 
-### 6. `src/server/cors.ts` を差し替える
+### 6. CORS の許可オリジンを設定する
 
-`ALLOWED_ORIGINS` が `// TODO` のプレースホルダーになっているので、Step 4 で確定した本番オリジンに差し替える。
+差し替えるのは値であって構造ではない。`src/server/cors.ts` の `LOCAL_ORIGINS`（ローカル開発用の固定オリジン）はそのままでよい。
+
+1. `wrangler.jsonc` の `vars.PROD_VERCEL_ORIGIN`（現状 `""` のプレースホルダー）に、Step 4 で確定した本番オリジンを設定する。空のままでも起動はするが、本番からの実リクエストは CORS で弾かれる
+2. Vercel のプレビューデプロイからも API を叩くなら、`src/server/cors.ts` の `PREVIEW_ORIGIN_PATTERN`（既定 `null` = プレビュー許可なし）を自分の Vercel team slug で絞った正規表現に差し替えて有効化する。`*.vercel.app` 全体にマッチするワイルドカードにはしないこと
+3. `pnpm cf-typegen` を再実行する（`wrangler.jsonc` の `vars` は `CloudflareBindings` の型に取り込まれるため）
 
 ### 7. コンテンツ機能を実装する
 
