@@ -56,8 +56,13 @@ diff ../hono-auth-starter/.claude/manifests/stack-kit-files.txt .claude/manifest
 
 更新後のマニフェストに列挙された各ファイルについて、hono-auth-starter 側と現在のプロジェクト側を比較する。
 
+> **`<path>` はマニフェストの行そのもの**（リポジトリルート相対。`.claude/agents/client-impl-agent.md` のように
+> 既に `.claude/` を含む）。hono-auth-starter 側も同じ構成のため、`../hono-auth-starter/<path>` と連結する。
+> `../hono-auth-starter/.claude/<path>` と書くと `.claude/` が二重になる。またスタック範囲には
+> `.github/workflows/stack-kit-pull-check.yml` も含まれ、これは `.claude/` 配下ではない。
+
 ```bash
-diff ../hono-auth-starter/.claude/<path> .claude/<path>
+diff ../hono-auth-starter/<path> <path>
 ```
 
 `diff` は差の有無しか返さず、hono-auth-starter とプロジェクトのどちらが新しいかを判別できない。単純に hono-auth-starter で上書きすると、プロジェクト側が先行しているファイルを巻き戻す。
@@ -90,7 +95,7 @@ git -C ../hono-auth-starter show "<base_sha>:<path>"
 ### Step 5: 承認されたファイルをローカルに適用する
 
 ```bash
-cp ../hono-auth-starter/.claude/<path> .claude/<path>
+cp ../hono-auth-starter/<path> <path>
 ```
 
 まだコミットはしない。

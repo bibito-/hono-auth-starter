@@ -99,8 +99,13 @@ base_sha=$(cat .claude/manifests/stack-kit-base.txt 2>/dev/null || echo "")
 
 ### Step 4: 変更ファイルをコピーする
 
+> **`<path>` はマニフェストの行そのもの**（リポジトリルート相対。`.claude/agents/client-impl-agent.md` のように
+> 既に `.claude/` を含む）。hono-auth-starter 側も同じ構成のため、そのまま連結する。
+> `../hono-auth-starter/.claude/<path>` と書くと `.claude/` が二重になる。またスタック範囲には
+> `.github/workflows/stack-kit-pull-check.yml` も含まれ、これは `.claude/` 配下ではない。
+
 ```bash
-cp <元プロジェクト>/.claude/<path> ../hono-auth-starter/.claude/<path>
+cp <path> ../hono-auth-starter/<path>
 ```
 
 ### Step 5: プロジェクト固有の内容が紛れていないか確認する
