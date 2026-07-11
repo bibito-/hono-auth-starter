@@ -13,7 +13,7 @@
 
 ### Step 1: ルールファイルに索引規約があるか確認する
 
-`.claude/rules/documentation-guide.md`（または同等のドキュメント運用ルールファイル）に「フォルダ索引（INDEX.md）」セクションがなければ追加する。内容:
+`.claude/docs/rules/documentation-guide.md`（または同等のドキュメント運用ルールファイル）に「フォルダ索引（INDEX.md）」セクションがなければ追加する。内容:
 
 ```markdown
 ## フォルダ索引（INDEX.md）
@@ -30,13 +30,11 @@
 |---|---|
 | <連番を除いたベース名> | <1行で役割> |
 
-同じベース名で連番違いの複数ファイル（例: `user-management-doc-01.md` / `user-management-doc-02.md`）は1行にまとめる。最新版はCLAUDE.md既定（最も連番が高いファイルを参照）で判別できるため、索引側に最新版番号は明記しない。
-
-連番サフィックスを持たないファイル（例: `docs/rules/` 配下の各ルールファイル）は、ファイル名をそのままベース名とする。
+同じベース名で連番違いの複数ファイル（例: `user-management-doc-01.md` / `user-management-doc-02.md`）は1行にまとめる。最新版は「最も連番が高いファイルを参照する」という既定で判別できるため、索引側に最新版番号は明記しない。
 
 ### 維持管理
 
-`INDEX.md` の作成・更新は `doc-push-agent` が行う（[.claude/agents/doc-push-agent.md](../agents/doc-push-agent.md) 参照）。
+`INDEX.md` の作成・更新は `doc-push-agent`（相当のagent）が行う。
 ```
 
 ### Step 2: 対象フォルダを洗い出す

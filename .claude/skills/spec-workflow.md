@@ -131,7 +131,7 @@ grill-gate: <適用 / スキップ>
 1. `.claude/docs/tech-spec/` … 最新の技術仕様書
 2. `.claude/docs/repository-structure/` … ディレクトリ構成（カテゴリ決定にも使う）
 3. 機能に近い既存コード（entities/, hooks/, repositories/, components/features/）
-4. DBが絡む場合: `supabase/migrations/` と `.claude/migrations/`
+4. DB が絡む場合: マイグレーション定義（プロジェクトのマイグレーション置き場）とその設計ドキュメント（`.claude/migrations/`）
 
 ### カテゴリの決定
 
