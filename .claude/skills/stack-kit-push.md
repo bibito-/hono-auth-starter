@@ -148,11 +148,16 @@ git -C ../hono-auth-starter commit -m "$(cat <<'EOF'
 <変更内容の要約（日本語）>
 
 Stack-Kit-Base: <base SHA>
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 EOF
 )"
+# トレーラが認識されているか push 前に確認する（空なら CI が必ず落ちる）
+git -C ../hono-auth-starter log -1 --format='[%(trailers:key=Stack-Kit-Base,valueonly)]'
 git -C ../hono-auth-starter push -u origin kit-push/$(date +%Y%m%d)-<要約>
 gh pr create -R bibito-/hono-auth-starter --base main --title "<変更内容の要約>" --body "スタック層の同期"
 ```
+
+> **トレーラ行の間に空行を入れないこと。** git はコミットメッセージの**最後の段落**だけをトレーラブロックとして解釈する。`Stack-Kit-Base:` と `Co-Authored-By:` を空行で分けると、最後の段落（`Co-Authored-By:` だけ）がトレーラとみなされ、base トレーラは無かったことになる。CI は「トレーラ欠落」で落ちるが、コミットメッセージ上は行が見えているため原因に気付きにくい。上記の `git log -1 --format=...` が空でないことを push 前に確かめる。
 
 追加行が禁止語（`ai-todo|hono-user-point|cloudflare-actions`）にヒットするが、それが**言及であって依存ではない**場合（禁止語パターンの定義そのもの・位置づけ図での consumer 列挙など）は、コミットに `Kit-Grep-Mention: <理由>` トレーラを足す。理由が空だと落ちる。これは例外を通す口ではなく「この語は言及であって依存ではない」と表明するもの。
 
