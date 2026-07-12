@@ -1,0 +1,36 @@
+{
+  "_comment": "core が配るフックの登録情報。settings.json はプロジェクトごとに permissions・MCP 設定が異なるため配布できないが、登録だけは配れる。pull 時に .claude/scripts/merge-hook-registrations.cjs がこの宣言を読み、settings.json に不足分だけを追記する。既存エントリは変更・削除しない。",
+  "registrations": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook": ".claude/hooks/guard-rm-rf.js",
+      "if": "Bash(rm -rf *)",
+      "blocking": true
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook": ".claude/hooks/guard-env-read.js",
+      "blocking": true
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook": ".claude/hooks/guard-review-agent-no-test-run.js",
+      "blocking": true
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook": ".claude/hooks/guard-kit-push-verdict.cjs",
+      "blocking": true
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "hook": ".claude/hooks/guard-kit-verdict-write.cjs",
+      "blocking": true
+    }
+  ]
+}

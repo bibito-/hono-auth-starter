@@ -25,7 +25,31 @@
                         "if": "Bash(*DROP TABLE*|*TRUNCATE*|*DELETE FROM*)",
                         "blocking": true
                     },
-                    { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-env-read.js\"", "blocking": true }
+                    {
+                        "type": "command",
+                        "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-env-read.js\"",
+                        "blocking": true
+                    },
+                    {
+                        "type": "command",
+                        "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-review-agent-no-test-run.js\"",
+                        "blocking": true
+                    },
+                    {
+                        "type": "command",
+                        "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-kit-push-verdict.cjs\"",
+                        "blocking": true
+                    }
+                ]
+            },
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-kit-verdict-write.cjs\"",
+                        "blocking": true
+                    }
                 ]
             }
         ]

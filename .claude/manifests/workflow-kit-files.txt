@@ -1,4 +1,6 @@
 .claude/hooks/
+.claude/scripts/merge-hook-registrations.cjs
+.claude/manifests/hook-registrations.json
 .claude/agents/doc-push-agent.md
 .claude/agents/kit-push-review-agent.md
 .claude/rules/agent-definition-guide.md
