@@ -1,0 +1,8 @@
+#!/bin/sh
+# Git が publish の直前に起動する最終ゲート。Bash コマンドの書き方には依存しない。
+set -eu
+
+hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(CDPATH= cd -- "$hook_dir/.." && pwd)
+
+exec node "$repo_root/.claude/hooks/guard-kit-push-verdict.cjs" --pre-push "$repo_root"

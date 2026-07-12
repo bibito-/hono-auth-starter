@@ -60,9 +60,12 @@ push 側のこの検証は誤操作を防ぐ第一関門であり、それ自体
 
 ```bash
 ls ../hono-auth-starter 2>/dev/null || gh repo clone bibito-/hono-auth-starter ../hono-auth-starter
+git -C ../hono-auth-starter config core.hooksPath .githooks
 ```
 
 `../hono-auth-starter` は現在のプロジェクトルート（`git rev-parse --show-toplevel`）から見た兄弟ディレクトリ。固定の絶対パスにはしないこと。
+
+2行目は kit 側の Git-level `pre-push` を有効化する。値を同じ `.githooks` に設定し直すだけなので、新規 clone・既存 clone のどちらでも冪等である。
 
 ### Step 3: クローンの一致確認と base SHA 検証
 
