@@ -23,8 +23,11 @@ name: kit-push-guard
 #    トレーラを要求すると、core の pull ワークフローが立てる自動 PR（bot コミット・
 #    トレーラ無し）が永久にマージ不能になり、core の更新を受け取れなくなる。
 #
-# 2. 混入: 追加行にコピー元プロジェクト固有名が無いこと。既存行は見ない（正当な
-#    ヒットを含むファイルがあり、ファイル全体の grep は初回から赤くなるため）。
+# 2. 混入: 配布対象ファイルの追加行にコピー元プロジェクト固有名が無いこと。検査する
+#    のは配布ペイロードだけで、配布されないファイル（src/・設計文書・このワークフロー
+#    自身）は見ない。そこまで見ると、経緯としてプロジェクト名に言及する正当な設計文書
+#    のたびに赤くなり、Kit-Grep-Mention が常態化して検査が形骸化する。既存行も見ない
+#    （正当なヒットを含むファイルがあり、ファイル全体の grep は初回から赤くなるため）。
 #    正当な追加（禁止語パターンの定義そのもの・位置づけ図での consumer 列挙）は
 #    HEAD コミットに `Kit-Grep-Mention: <理由>` を付けて宣言すると警告に降格する。
 #    「例外を通す」のではなく「この語は言及であって依存ではない」と表明するもの。
@@ -84,14 +87,19 @@ jobs:
           }
 
           # ---- 1. 鮮度 ----
-          touches_manifest=0
+          scoped=()
           while IFS= read -r p; do
             [ -z "$p" ] && continue
             if in_manifest "$p"; then
               echo "配布対象ファイルの変更: $p"
-              touches_manifest=1
+              scoped+=("$p")
             fi
           done < <(git diff --name-only "$base_ref" HEAD)
+
+          touches_manifest=0
+          if [ "${#scoped[@]}" -gt 0 ]; then
+            touches_manifest=1
+          fi
 
           if [ "$touches_manifest" = "1" ]; then
             declared=$(git log -1 --format="%(trailers:key=$TRAILER,valueonly)" HEAD | tr -d '[:space:]')
@@ -112,10 +120,19 @@ jobs:
           fi
 
           # ---- 2. 混入 ----
+          # スコープは配布対象ファイルのみ（鮮度チェックと同じ）。この grep が守るのは
+          # 「配布ペイロードが特定のプロジェクトに依存しないこと」であり、配布されない
+          # ファイル（src/・設計文書・このワークフロー自身）まで見ると、経緯として
+          # プロジェクト名に言及する正当な文書のたびに赤くなり Kit-Grep-Mention が
+          # 常態化して検査が形骸化する。
+          #
           # 追加行の抽出に grep を挟むと、パターン不正による異常終了 (exit 2) と
           # 「一致なし」(exit 1) を呼び出し側で区別できず、`|| true` が検査そのものの
           # 失敗を握り潰す。抽出は awk で行い、grep は照合だけに使って exit 2 を弾く。
-          added=$(git diff "$base_ref" HEAD | awk '/^\+\+\+/ { next } /^\+/ { print }')
+          added=""
+          if [ "${#scoped[@]}" -gt 0 ]; then
+            added=$(git diff "$base_ref" HEAD -- "${scoped[@]}" | awk '/^\+\+\+/ { next } /^\+/ { print }')
+          fi
 
           hits=""
           if [ -n "$added" ]; then
