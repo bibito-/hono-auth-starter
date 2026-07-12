@@ -153,9 +153,13 @@ jobs:
             if [[ "$path" == */ ]]; then
               src_dir="$KIT/${path}"
               [ -d "$src_dir" ] || { echo "::notice::${path} が claude-workflow-kit に存在しません（スキップ）"; continue; }
+              # 拡張子で絞らない。マニフェストのディレクトリ行は「配下すべて」を意味する。
+              # 旧版は '*.js' だけを拾っていたため、.cjs のフック（ESM プロジェクトでも
+              # CommonJS として動かすために必要な拡張子）と INDEX.md が自動 pull で
+              # 一度も配られていなかった。
               while IFS= read -r -d '' src_file; do
                 apply_one "${src_file#$KIT/}"
-              done < <(find "$src_dir" -type f -name '*.js' -print0)
+              done < <(find "$src_dir" -type f -print0)
               continue
             fi
 
