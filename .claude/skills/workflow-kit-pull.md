@@ -103,6 +103,20 @@ cp ../claude-workflow-kit/<path> <path>
 
 まだコミットはしない。
 
+### Step 5-b: フック登録を settings.json にマージする
+
+```bash
+node .claude/scripts/merge-hook-registrations.cjs
+```
+
+`settings.json` は配布できない（プロジェクトごとに permissions・MCP 設定が異なり、上書きすると壊れる）。しかし登録が無ければ、配られたフックは**一度も発火しない**。発火しないゲートは無いより悪い（効いていると思い込むため）。
+
+このスクリプトは `.claude/manifests/hook-registrations.json` の宣言を読み、`settings.json` に**不足している登録だけを追記する**。既存エントリの変更・削除・並べ替えはせず、プロジェクト独自のフック登録にも触れない。冪等。
+
+`--check` を付けると書き込まず、不足があれば exit 1 で報告する。
+
+> `settings.json` の変更をコミットする前に、必ず差分をユーザーに提示して承認を得ること。
+
 ### Step 6: base SHA を更新する
 
 kit の `origin/main` SHA を `.claude/manifests/workflow-kit-base.txt` に1行で書き込む。

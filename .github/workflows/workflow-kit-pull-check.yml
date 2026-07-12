@@ -170,6 +170,22 @@ jobs:
             apply_one "$path"
           done < "$manifest"
 
+          # フック登録を settings.json へマージする。
+          # settings.json 自体は配布できない（プロジェクトごとに permissions・MCP 設定が
+          # 異なり、上書きすると壊れる）。しかし登録が無ければフックは一度も発火しない。
+          # 発火しないゲートは無いより悪いので、不足分の登録だけを足す。既存エントリは触らない。
+          merge_script=.claude/scripts/merge-hook-registrations.cjs
+          if [ -f "$merge_script" ] && [ -f .claude/manifests/hook-registrations.json ]; then
+            if node "$merge_script"; then
+              if ! git diff --quiet -- .claude/settings.json 2>/dev/null; then
+                echo "- \`.claude/settings.json\` (フック登録の追記)" >> "$body_file"
+                changed=1
+              fi
+            else
+              echo "::warning::フック登録のマージに失敗しました。ローカルで node $merge_script を実行してください"
+            fi
+          fi
+
           # base SHA はファイル差分の有無に関わらず現在の kit HEAD を記録する。
           # kit が進んだが core ファイルに差分がない場合でも base を進めないと、
           # 手動の /workflow-kit-push が base 不一致で偽陽性のまま弾かれ続ける。
