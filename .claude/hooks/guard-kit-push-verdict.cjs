@@ -178,19 +178,28 @@ function classifyPushCommand(cmd, cwd, nesting = 0) {
 
     let i = executable + 1;
     let dashC = null;
+    let unresolvedDashC = false;
+    let unresolvedOption = false;
     while (i < toks.length) {
       const token = toks[i];
-      if (token.hasExpansion) return { kind: 'ambiguous' };
       if (token.value === '-C') {
         const target = toks[i + 1];
-        if (!target || target.hasExpansion) return { kind: 'ambiguous' };
-        dashC = target.value;
+        if (!target) return { kind: 'ambiguous' };
+        // -C の展開先は push の対象判定にだけ影響する。ここで曖昧として
+        // 打ち切ると、後続が status など確実な非 push の通常作業まで止める。
+        if (target.hasExpansion) unresolvedDashC = true;
+        else dashC = target.value;
         i += 2;
       } else if (token.value === '-c') {
         const config = toks[i + 1];
-        if (!config || config.hasExpansion) return { kind: 'ambiguous' };
+        if (!config) return { kind: 'ambiguous' };
         i += 2;
       } else if (token.value.startsWith('-')) {
+        // オプション自身や `--git-dir=$DIR` のような値の展開は、後続の
+        // サブコマンドを変えない。サブコマンドを確定してから push だけを
+        // 厳密に扱う。展開されたオプションは push の対象にも影響し得るため、
+        // push だった場合だけ fail closed にする。
+        if (token.hasExpansion) unresolvedOption = true;
         i += 1;
       } else {
         break;
@@ -201,7 +210,11 @@ function classifyPushCommand(cmd, cwd, nesting = 0) {
     if (subcommand?.hasExpansion || /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/.test(subcommand?.value || '')) {
       return { kind: 'ambiguous' };
     }
-    if (subcommand?.value === 'push') return { kind: 'push', target: dashC || cdPath || cwd || null };
+    if (subcommand?.value === 'push') {
+      // push のときだけ -C の未解決な展開を fail closed にする。
+      if (unresolvedDashC || unresolvedOption) return { kind: 'ambiguous' };
+      return { kind: 'push', target: dashC || cdPath || cwd || null };
+    }
   }
 
   return { kind: 'not-push' };
