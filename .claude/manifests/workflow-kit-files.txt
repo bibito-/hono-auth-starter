@@ -1,5 +1,6 @@
 .claude/hooks/
 .claude/agents/doc-push-agent.md
+.claude/agents/kit-push-review-agent.md
 .claude/rules/agent-definition-guide.md
 .claude/rules/commit-guide.md
 .claude/rules/documentation-guide.md
