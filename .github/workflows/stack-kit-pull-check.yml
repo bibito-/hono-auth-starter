@@ -1,6 +1,6 @@
 name: stack-kit-pull-check
 
-# hono-auth-starter（Hono+Supabaseスタックの正、PRIVATE）との差分を毎日チェックし、
+# hono-auth-starter（Hono+Supabaseスタックの正）との差分を毎日チェックし、
 # 差分があれば対象ファイルを自リポジトリへ反映してPRを立てる。
 # 対象ファイル一覧は .claude/manifests/stack-kit-files.txt を単一の正として参照する。
 # 自動マージはしない（PR発行止まり）。
@@ -30,14 +30,13 @@ jobs:
           # conflict 報告に「このファイルを追加したコミット」を添えるため全履歴を取る
           fetch-depth: 0
 
-      # hono-auth-starter は PRIVATE のため PAT が要る。
+      # hono-auth-starter は public のため token 指定は不要（既定の GITHUB_TOKEN で読める）。
       # checkout の path は workspace 内に限られるので .stack-kit-src に置き、
       # diff 後に必ず削除して PR に混入させない。
       - name: Checkout hono-auth-starter
         uses: actions/checkout@v4
         with:
           repository: bibito-/hono-auth-starter
-          token: ${{ secrets.STACK_KIT_PAT }}
           path: .stack-kit-src
           # conflict 報告用に kit 側の追加コミット情報も引くため shallow にしない
           fetch-depth: 0
@@ -58,8 +57,7 @@ jobs:
 
           # 共通祖先のブロブを base コミットから読めることを確認する。
           # 全履歴 checkout なら通常 HEAD から到達可能だが、force-push で履歴から
-          # 消えた SHA は fetch で拾い直す（actions/checkout が認証情報を保持している
-          # ので private でも fetch できる）。それでも取れない場合（base 未設定等）は
+          # 消えた SHA は fetch で拾い直す。それでも取れない場合（base 未設定等）は
           # 方向判別せず、安全側に倒す。
           ancestor_ok=0
           if [ -n "$base_sha" ] && { git -C "$KIT" cat-file -e "$base_sha^{commit}" 2>/dev/null || git -C "$KIT" fetch origin "$base_sha" -q 2>/dev/null; }; then
