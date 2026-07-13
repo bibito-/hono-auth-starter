@@ -185,14 +185,24 @@ jobs:
                 # 宣言ファイル自身に自分を宣言させても意味がない。フック側では常に
                 # 審査対象として扱われる（縮められると審査そのものを外せるため）。
                 [ "$top" = "$SCOPE" ] && continue
-                if jq -e --arg t "$top" '
-                     [(.review_extra // [])[], (.no_review // [])[]]
-                     | any(.path == $t or .path == ($t + "/"))
-                   ' "$SCOPE" >/dev/null; then
-                  echo "審査スコープ OK: $top は $SCOPE で宣言済み"
-                else
+                entry=$(jq -c --arg t "$top" '
+                          [(.review_extra // [])[], (.no_review // [])[]]
+                          | map(select(.path == $t or .path == ($t + "/")))
+                          | first // empty
+                        ' "$SCOPE")
+
+                if [ -z "$entry" ]; then
                   echo "::error::トップレベルに $top が増えましたが $SCOPE で分類されていません。審査すべきなら review_extra に、不要なら no_review に、理由を添えて宣言してください"
                   fail=1
+                # 理由の無い宣言は素通りさせない。パスを1行足すだけで分類したことに
+                # できるなら、宣言はゴム印になり、何を守っているのか誰も答えられなくなる。
+                # フック側は review_extra の reason を検証するが、no_review は読まないため、
+                # ここが no_review の唯一の歯止めになる。
+                elif ! printf '%s' "$entry" | jq -e '(.reason? // "") | test("\\S")' >/dev/null; then
+                  echo "::error::$SCOPE の $top に reason がありません。なぜ審査対象なのか／なぜ不要なのかを書いてください"
+                  fail=1
+                else
+                  echo "審査スコープ OK: $top は $SCOPE で宣言済み"
                 fi
               done <<< "$new_top"
             fi
