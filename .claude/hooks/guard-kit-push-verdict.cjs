@@ -10,6 +10,10 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// このリストは kit 自身での直接開発にだけ使う。consumer に配る必要はなく、存在しない
+// kit では従来どおり全変更を審査する。
+const REVIEW_EXEMPTIONS_FILE = '.kit-push-review-exemptions.json';
+
 // マーカー規則で層を判定する関数。kit かどうかの判定も含む。
 // 層が判定できたら層名を返す、できなければ null を返す。
 function resolveLayer(kitPath) {
@@ -37,9 +41,9 @@ function resolveLayer(kitPath) {
   return null;
 }
 
-// digest 計算関数。agent とフックで同一ロジックを保証するため
-// 関数化し、--context モードと通常モード双方で使用する。
-function calculateDigest(kitPath) {
+// agent とフックで同じ変更集合を使う。tracked の変更・削除と未追跡ファイルを
+// 合わせることで、コミット前後で同じパス集合になる。
+function getChangedPaths(kitPath) {
   const sh = (c) => execSync(c, { cwd: kitPath, encoding: 'utf8' });
 
   // origin/main との差分（作業ツリー比較）。tracked ファイルの変更・削除を拾う。
@@ -56,10 +60,97 @@ function calculateDigest(kitPath) {
     throw new Error(`origin/main との差分取得に失敗: ${e.message}`);
   }
 
-  // 未追跡の新規ファイル。コミット後は上の diff 側に現れるため、和集合を取れば
-  // どちらのタイミングでもパス集合は変わらない。
   const untracked = sh('git ls-files --others --exclude-standard').split('\n').filter(Boolean);
-  const paths = [...new Set([...changed, ...untracked])].sort();
+  return [...new Set([...changed, ...untracked])].sort();
+}
+
+// マニフェストの行は「1行1パス」。末尾 / の行はそのディレクトリ配下を再帰対象とする。
+// 免除リストと同じ規則なので、被覆判定を両者で共有する。
+function covers(entry, target) {
+  return entry.endsWith('/') ? target.startsWith(entry) : target === entry;
+}
+
+// この kit が配布するパスを全マニフェストから集める。層は問わない。kit は自層の正で
+// あると同時に上位層の consumer でもあり、どちらのペイロードも免除の網から外れては
+// ならない。
+function loadDistributedPaths(kitPath) {
+  const manifestDir = path.join(kitPath, '.claude', 'manifests');
+  if (!fs.existsSync(manifestDir)) return [];
+
+  const paths = [];
+  for (const file of fs.readdirSync(manifestDir)) {
+    if (!/-kit-files\.txt$/.test(file)) continue;
+    const lines = fs.readFileSync(path.join(manifestDir, file), 'utf8').split('\n');
+    for (const line of lines) {
+      const entry = line.trim();
+      if (entry) paths.push(entry);
+    }
+  }
+  return paths;
+}
+
+function loadReviewExemptions(kitPath) {
+  const exemptionsPath = path.join(kitPath, REVIEW_EXEMPTIONS_FILE);
+  if (!fs.existsSync(exemptionsPath)) return [];
+
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(exemptionsPath, 'utf8'));
+  } catch (e) {
+    throw new Error(`${REVIEW_EXEMPTIONS_FILE} の読み込みに失敗: ${e.message}`);
+  }
+
+  if (config?.version !== 1 || !Array.isArray(config.paths)) {
+    throw new Error(`${REVIEW_EXEMPTIONS_FILE} は version: 1 と paths 配列を持つ必要があります`);
+  }
+
+  const distributed = loadDistributedPaths(kitPath);
+
+  return config.paths.map((entry, index) => {
+    if (
+      !entry ||
+      typeof entry.path !== 'string' ||
+      !entry.path ||
+      entry.path.startsWith('/') ||
+      entry.path.includes('..') ||
+      typeof entry.reason !== 'string' ||
+      !entry.reason.trim()
+    ) {
+      throw new Error(`${REVIEW_EXEMPTIONS_FILE} の paths[${index}] が不正です`);
+    }
+
+    // 免除できるのは配布されないパスだけ。混入審査が守るのは配布ペイロードであり、
+    // 配布対象を免除した時点で審査は素通りになる。どちらがどちらを覆っていても
+    // 危険なので双方向で見る（`.claude/docs/` が配布物 `.claude/docs/rules/x.md` を
+    // 覆う場合と、配布ディレクトリ `.claude/hooks/` が免除対象の1ファイルを覆う場合）。
+    // 免除リストの書き間違いを人間の注意力に頼らせないための構造的な歯止め。
+    const conflict = distributed.find(
+      (dist) => covers(entry.path, dist) || covers(dist, entry.path)
+    );
+    if (conflict) {
+      throw new Error(
+        `${REVIEW_EXEMPTIONS_FILE} の paths[${index}] "${entry.path}" は配布対象 "${conflict}" と重なっています。配布されるファイルは審査を免除できません`
+      );
+    }
+
+    return entry.path;
+  });
+}
+
+// paths の末尾 / は配下を再帰免除する明示記法。それ以外は完全一致だけを許す。
+// 免除リスト自身は常に審査し、自己追加から未審査にする経路を作らない。
+function areAllChangesReviewExempt(kitPath, changedPaths) {
+  if (changedPaths.length === 0) return false;
+  const exemptions = loadReviewExemptions(kitPath);
+  return changedPaths.every((changedPath) => {
+    if (changedPath === REVIEW_EXEMPTIONS_FILE) return false;
+    return exemptions.some((entry) => covers(entry, changedPath));
+  });
+}
+
+// digest 計算関数。agent とフックで同一ロジックを保証するため
+// 関数化し、--context モードと通常モード双方で使用する。
+function calculateDigest(kitPath, paths = getChangedPaths(kitPath)) {
 
   const lines = paths.map((p) => {
     const full = path.join(kitPath, p);
@@ -265,9 +356,27 @@ function enforcePushVerdict(kitPath) {
   const layerName = resolveLayer(kitPath);
   if (!layerName) return true;
 
+  let changedPaths;
+  try {
+    changedPaths = getChangedPaths(kitPath);
+  } catch (e) {
+    console.error(`変更対象の取得エラー: ${e.message}`);
+    return false;
+  }
+
+  try {
+    if (areAllChangesReviewExempt(kitPath, changedPaths)) {
+      console.error('審査免除パスだけの変更のため、kit-push-review-agent の verdict をスキップします。');
+      return true;
+    }
+  } catch (e) {
+    console.error(`審査免除リストの検証エラー: ${e.message}`);
+    return false;
+  }
+
   let currentDigest;
   try {
-    currentDigest = calculateDigest(kitPath);
+    currentDigest = calculateDigest(kitPath, changedPaths);
   } catch (e) {
     console.error(`digest 計算エラー: ${e.message}`);
     return false;
@@ -368,9 +477,14 @@ if (require.main === module) {
 }
 
 module.exports = {
+  areAllChangesReviewExempt,
   calculateDigest,
   classifyPushCommand,
+  covers,
   enforcePushVerdict,
   findCleanVerdict,
+  getChangedPaths,
+  loadDistributedPaths,
+  loadReviewExemptions,
   resolveLayer,
 };
