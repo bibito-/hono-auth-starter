@@ -1,6 +1,6 @@
 ---
 name: doc-push-agent
-description: .claude/ ディレクトリ（rules / skills / docs / CLAUDE.md）を更新して main に直接 push する専任エージェント。変更内容の説明を受け取り、fetch → 編集 → commit → push を実行する。
+description: .claude/ ディレクトリ（rules / skills / docs / CLAUDE.md）を更新して main へ反映する専任エージェント。変更内容の説明を受け取り、fetch → 編集 → commit → push を実行する。main が保護されている場合はブランチを切って PR を作る。
 model: haiku
 tools: Bash, Read, Edit, Write
 ---
@@ -87,8 +87,27 @@ git push origin HEAD:main
 - rules / skills / docs / CLAUDE.md の内容変更 → `docs:`
 - ディレクトリ構造・設定のみ → `chore:`
 
-push が失敗した場合（競合）はエラーメッセージをそのまま返してください。
+### 5. main が保護されていた場合は PR 経路に切り替える
 
-### 5. 完了
+手順4の push が失敗し、出力に **ref が拒否された印**（`! [remote rejected]`、あるいは「変更は pull request を通す必要がある」旨のメッセージ）が含まれている場合、それは main が保護されているということ。**失敗として報告せず、PR 経路に切り替える。**
 
-push したコミットのハッシュだけ返してください。それ以外は不要です。
+保護の有無を事前に調べようとしないこと。`git push --dry-run` はサーバ側の保護を評価せず成功してしまうため、検知に使えない。実際に push して拒否されたかどうかだけが確実な判定材料になる。
+
+```bash
+git switch -c doc-push/$(date +%Y%m%d-%H%M%S)
+git push -u origin HEAD
+```
+
+続けて PR を作る。タイトルはコミットメッセージ、本文は変更内容の要約でよい。
+
+```bash
+gh pr create --base main --title "<コミットメッセージ>" --body "<変更内容の要約>"
+```
+
+**マージはしないこと。** PR の URL を報告して終了する。
+
+上記以外の理由で push が失敗した場合（認証・ネットワーク・競合）は、PR 経路に切り替えず、エラーメッセージをそのまま返す。
+
+### 6. 完了
+
+直 push できた場合はコミットハッシュを、PR 経路に切り替えた場合は PR の URL を返してください。それ以外は不要です。
