@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "_note": "このファイルの存在が「審査スコープを絞ってよい」という宣言そのもの。無ければフックは全変更を審査する。スコープ = フックの MANDATORY_SCOPE（正典・ゲート定義・scaffold 配布経路）∪ マニフェストの配布物（stack-kit-files.txt / workflow-kit-files.txt）∪ 下の review_extra。src/ やアプリの設定ファイルは下流へ配布されず、混入審査が守る対象が無いためスコープ外になる。",
+  "review_extra": [],
+  "no_review": []
+}
