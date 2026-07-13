@@ -27,20 +27,19 @@ permissionMode: bypassPermissions
 node <プロジェクトルート>/.claude/hooks/guard-kit-push-verdict.cjs --context <kit_path>
 ```
 
-を実行し、標準出力の JSON から `layer` / `target_repo` / `digest` を取得する。これらの値は後述の verdict frontmatter に**自分で判定させず、そのまま転記する**。層名の判定誤りを防ぐのがこの設計の目的。
+を実行し、標準出力の JSON から `layer` / `target_repo` / `digest` / `review_paths` を取得する。`layer` / `target_repo` / `digest` は後述の verdict frontmatter に**自分で判定させず、そのまま転記する**。層名の判定誤りを防ぐのがこの設計の目的。
 
-### Step 2: 今回の変更対象を把握
+### Step 2: 今回の審査対象を把握
 
-```bash
-git -C <kit_path> diff origin/main --name-only
-git -C <kit_path> ls-files --others --exclude-standard
-```
+**審査対象は `review_paths` がすべてである。** 自分で `git diff` を取り直して対象を広げないこと。
 
-で変更・新規作成されたファイルの一覧を取得。
+`review_paths` は「変更集合 ∩ 審査スコープ」であり、スコープはマニフェストの配布物に加え、`.kit-push-review-scope.json` が宣言する追加パス（scaffold の配布経路・kit の正典・ゲート定義）からなる。ここに載らない変更（アプリのコード・設計アーカイブ）は外へ出ないため、混入のしようがなく、審査しても守るものが無い。
+
+digest も `review_paths` から計算されている。対象を広げて指摘しても、その指摘は digest に束縛されない。
 
 ### Step 3: 対象ファイルを全文読む
 
-変更対象のすべてのファイルを**全文**読む。混入は文脈依存で、前後を読まないと以下の判断が下せないため：
+`review_paths` のすべてのファイルを**全文**読む。混入は文脈依存で、前後を読まないと以下の判断が下せないため：
 - 「この手順文はコピー元プロジェクト固有の環境を前提にしているか」
 - 「この定数名・機能名は本当にこの層に属する汎用なものか、それとも呼び出し元プロジェクト特有か」
 
