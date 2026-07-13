@@ -1,8 +1,12 @@
 # doc-push スキル
 
 args で指定された `.claude/` ディレクトリの変更（rules / skills / CLAUDE.md）を、
-background agent に委譲し、main に直接 push する。
-ユーザーは関与不要。完了後に Claude が steering へ記録する。
+background agent に委譲して main へ反映する。
+完了後に Claude が steering へ記録する。
+
+main が保護されていないプロジェクトでは agent が直接 push し、ユーザーの関与は不要。
+main が保護されている（PR 必須）プロジェクトでは、直 push が拒否された時点で agent が
+ブランチを切って PR を作り、URL を返す。マージはユーザーが行う。
 
 ## 想定シチュエーション
 
@@ -15,7 +19,7 @@ feat/xxx ブランチで作業中
 ↓
 /doc-push tdd-workflow に〇〇を追記
 ↓
-agent が background で origin/main を更新（作業は止まらない）
+agent が background で main へ反映（保護時は PR を作る。作業は止まらない）
 ↓
 完了通知 → Claude が worktree 削除・steering 記録
 ↓
@@ -80,6 +84,9 @@ git branch -D <worktreeBranch>
 ```
 - <コミットハッシュ>（<変更内容の要約>）
 ```
+
+agent が PR 経路に切り替えた場合（main が保護されている）は、コミットハッシュの代わりに
+PR の URL を記録し、**マージが必要であることをユーザーに伝える**。エージェントはマージしない。
 
 push 失敗（競合）の場合はユーザーに報告して再実行を促す。
 
