@@ -48,6 +48,7 @@ ds-bundle/
 # Claude agent session state (not for version control)
 .claude/steering/
 .claude/worktrees/
+.claude/settings.local.json
 .agents/
 
 .dev.vars*
