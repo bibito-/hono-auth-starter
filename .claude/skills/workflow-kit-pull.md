@@ -149,6 +149,38 @@ git -C ../claude-workflow-kit rev-parse origin/main
 
 例外として、Step 4 で差分を確認したうえで解決方針が決まった場合（kit 側を採用する／プロジェクト側を維持して後で push する）は、その判断をもって base を進めてよい。CI は自動実行のため常に進めない。この例外が無いと、双方変更のファイルが存在する間は base を進められず、push ガードも base 不一致で弾き続けるため、どちらにも進めなくなる。
 
+### Step 6-b: 自リポジトリが kit layer の正を兼ねるか確認する
+
+pull 先のプロジェクトが別レイヤーの kit（例: stack-kit）の正規リポジトリを兼ねる場合、`guard-kit-push-verdict.cjs` が Step 7 の push を一律ブロックする。このフックは push 元の文脈（pull による素通しか、独自変更か）を区別せず、review スコープに触れる push すべてに `kit-push-review-agent` の clean verdict を要求するため、pull で取り込んだだけの変更でも例外にならない。
+
+```bash
+node .claude/hooks/guard-kit-push-verdict.cjs --context "$(git rev-parse --show-toplevel)"
+```
+
+**終了コードで分岐する**（JSON の中身では判定しない）。`resolveLayer` が失敗すると `--context` は JSON を出力せず非0で終了するため、JSON をパースする前に終了コードを見る必要がある。
+
+- 非0で終了 → このリポジトリは何らかの kit の正ではない。この Step はスキップして Step 7 へ進む
+- 0で終了 → 標準出力の JSON をパースし、`review_paths` が空なら Step 7 へ進む。空でなければ以下の verdict 取得に進む
+
+`kit_path` には必ず絶対パスを渡す。`.` などの相対パスを渡すと、`--context` 側の `target_repo`（`path.basename(kit_path)`）と、実際の push 時に `enforcePushVerdict` が計算する `target_repo`（push コマンドの絶対 cwd から basename を取る値）が食い違い、`findCleanVerdict` の完全一致判定が永久に失敗する。
+
+verdict の取得には、pull 文脈専用の `universality_criterion` を使う（層固有の判定基準を workflow-kit-pull 側は持てないため、判定を「コピー元プロジェクト固有名の有無」だけに絞った層非依存の基準にする）。
+
+```bash
+/kit-push-review-agent \
+  kit_path="$(git rev-parse --show-toplevel)" \
+  universality_criterion="今回の変更は claude-workflow-kit からの /workflow-kit-pull で取り込んだ内容である。判定基準は、コピー元プロジェクト固有名（このリポジトリ自身のプロジェクト名以外）が混入していないことのみ。pull 由来の core ペイロードがこの kit の配布物に含まれること自体は設計上想定済みであり、それ自体は contaminated としない" \
+  exclusion_list="<このリポジトリと同居する兄弟プロジェクトのディレクトリ名一覧>"
+```
+
+> `exclusion_list` の実際の値をこのスキルに直書きしないこと。実行時にプロジェクトの実名へ展開する（[workflow-kit-push.md](./workflow-kit-push.md) と同じ理由）。
+
+verdict が `clean` になるまで Step 7 には進めない（`guard-kit-push-verdict.cjs` がこれを強制する。バイパスはしない）。`contaminated` と判定された場合は指摘を確認し、誤検知だと考える場合は反論理由を添えて agent を再起動する。
+
+doc-push-agent 自体は変更しない。doc-push-agent は層に関する知識を持たない汎用の commit/push 実行役であり続け、layer 判定と verdict 取得は呼び出し側（このスキル）の責務とする。
+
+実例（2026-07-21）: hono-auth-starter で本スキルを実行した際、Step 7 の push が `guard-kit-push-verdict.cjs` にブロックされた。hono-auth-starter は stack-kit の正でもあるため、pull 由来の変更（`.claude/hooks/`・`.claude/agents/`・`.claude/manifests/hook-registrations.json` 配下の3ファイル）が review スコープに触れ、ゲートの対象になった。当時は本 Step が存在せず、Step 7 で初めてブロックに気づき、手動で `kit-push-review-agent` を起動して verdict を取得した。
+
 ### Step 7: doc-push-agent に委譲してコミット・push する
 
 `.claude/` の変更は既存ルール通り doc-push-agent に委譲する。対象ファイル（適用したファイル＋`workflow-kit-base.txt`）を明示的に列挙し、他のファイルは触らせない。
