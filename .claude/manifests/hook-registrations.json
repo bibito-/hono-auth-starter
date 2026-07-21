@@ -17,12 +17,6 @@
     {
       "event": "PreToolUse",
       "matcher": "Bash",
-      "hook": ".claude/hooks/guard-review-agent-no-test-run.js",
-      "blocking": true
-    },
-    {
-      "event": "PreToolUse",
-      "matcher": "Bash",
       "hook": ".claude/hooks/guard-kit-push-verdict.cjs",
       "blocking": true
     },

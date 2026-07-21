@@ -3,15 +3,13 @@ process.stdin.on('data', (c) => (d += c));
 process.stdin.on('end', () => {
   const o = JSON.parse(d);
   const cmd = (o.tool_input || {}).command || '';
-  const agentType = o.agent_type;
 
-  // agent_type はサブエージェント実行時のみハーネスが注入するフィールド。
-  // メイン Claude から呼ばれた場合は undefined になる。
-  if (agentType !== 'kit-push-review-agent') {
-    process.exit(0);
-  }
-
-  // kit-push-review-agent は静的レビュー専任のため、テスト実行・型チェックを禁止する。
+  // このフックは frontmatter 経由でレビュー専任 agent（kit-push-review-agent・
+  // {{LAYER}}-review-agent）にのみ登録される。呼び出し元を判定する必要はない。
+  // agent_type によるホワイトリスト方式は core では採れない（レイヤー名は配布先
+  // ごとに異なり、core がそれを知ってはならない）。
+  //
+  // 静的レビュー専任のため、テスト実行・型チェックを禁止する。
   //
   // 言語ごとの列挙。スタックを増やしたらここに足す（プロジェクト側で上書き可能にすると
   // ガードを緩める抜け道になるため、列挙は core が持ち続ける）。
