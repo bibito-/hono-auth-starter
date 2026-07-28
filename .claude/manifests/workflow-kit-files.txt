@@ -12,6 +12,9 @@
 .claude/skills/doc-push.md
 .claude/skills/index-setup.md
 .claude/commands/spec.md
+.claude/commands/doc-push.md
+.claude/commands/workflow-kit-pull.md
+.claude/commands/workflow-kit-push.md
 .claude/docs/rules/documentation-guide.md
 .claude/docs/rules/terminology-rules.md
 .claude/skills/workflow-kit-push.md

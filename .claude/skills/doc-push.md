@@ -79,7 +79,7 @@ git branch -D <worktreeBranch>
 
 **2. steering に記録する**
 
-`steering/history.md` の「doc-push 完了ログ」に追記する。
+`.claude/steering/history.md` の「doc-push 完了ログ」に追記する。
 
 ```
 - <コミットハッシュ>（<変更内容の要約>）
