@@ -1,7 +1,7 @@
 ---
 name: doc-push-agent
 description: .claude/ ディレクトリ（rules / skills / docs / CLAUDE.md）を更新して main へ反映する専任エージェント。変更内容の説明を受け取り、fetch → 編集 → commit → push を実行する。main が保護されている場合はブランチを切って PR を作る。
-model: haiku
+model: sonnet
 tools: Bash, Read, Edit, Write
 ---
 

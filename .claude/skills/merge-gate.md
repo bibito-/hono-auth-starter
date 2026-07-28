@@ -30,7 +30,7 @@ B) スキップ … 軽微変更（リネーム・ドキュメント・自明な
 ```
 
 - **決めるタイミング**: spec があれば `/spec` の Step 2-0、無ければ `/tdd` 開始時
-- **記録**: 選択を `specs/proceed.md` と `steering/current.md` の「運用ゲート」に書く（例: `grill-gate: 適用` / `grill-gate: スキップ`）
+- **記録**: 選択を `.claude/specs/proceed.md` と `.claude/steering/current.md` の「運用ゲート」に書く（例: `grill-gate: 適用` / `grill-gate: スキップ`）
 - **再質問しない**: 既に記録があれば後続の `/tdd` で再度聞かない。その記録に従う
 - **既定は A**。判断が記録されていない場合は A（適用）として扱う
 
@@ -177,4 +177,4 @@ gh pr create --title "..." --body "..." --base main
 ## 適用
 
 - 各フェーズ／段階（PR）の main マージ前に本ゲートを通す。段階分割している場合は**段階ごとに**実施し、その段階の論点に絞る
-- steering/current.md の「運用ゲート」「次のステップ」にゲート実施を明記する
+- `.claude/steering/current.md` の「運用ゲート」「次のステップ」にゲート実施を明記する
